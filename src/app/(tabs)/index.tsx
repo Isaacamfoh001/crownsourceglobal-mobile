@@ -2,20 +2,39 @@ import { useCallback } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
-import { Button } from "@/components/ui/Button";
+import { AppLogo } from "@/components/ui/AppLogo";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { CategoryTile } from "@/components/ui/CategoryTile";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
-import { Color, Radius, Spacing } from "@/constants/theme";
+import { IconSize, Palette, Radius, Spacing } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { useHome } from "@/features/home/useHome";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 
+type QuickAction = {
+  key: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+};
+
+/**
+ * Home's top hero is a deliberate, permanently-dark "brand plate" — it
+ * always uses Palette.dark directly, not useAppTheme()'s resolved colors —
+ * because the official logo asset (see AppLogo.tsx) has a solid black
+ * background baked in and needs a dark surface to sit on regardless of
+ * which app theme is active. Everything below the hero uses the resolved
+ * theme so light-mode Home is its own art-directed light page (warm pearl,
+ * charcoal text, pink CTAs, gold accents), not "dark Home with the colors
+ * swapped" — see M19.2 report §L.
+ */
 export default function HomeScreen() {
+  const { colors, scheme } = useAppTheme();
+  const heroColors = Palette.dark;
   const { data, isPending, isError, error, refetch, isRefetching } = useHome();
 
   const goToShop = useCallback((categorySlug?: string) => {
@@ -26,59 +45,72 @@ export default function HomeScreen() {
     router.push({ pathname: "/listing/[id]", params: { id } });
   }, []);
 
+  const quickActions: QuickAction[] = [
+    { key: "shop", label: "Shop", icon: "bag-handle", onPress: () => goToShop() },
+    { key: "explore", label: "Explore", icon: "compass", onPress: () => router.push("/(tabs)/explore") },
+    { key: "source", label: "Source", icon: "camera", onPress: () => router.push("/(tabs)/source") },
+  ];
+
   return (
-    <Screen surface="brand" onRefresh={refetch} refreshing={isRefetching} edges={["top"]}>
-      <View style={styles.header}>
-        <Text variant="display" tone="goldOnDark">
-          CrownSourceGlobal
-        </Text>
+    <Screen onRefresh={refetch} refreshing={isRefetching} edges={["top"]} contentStyle={styles.screenContent}>
+      <View style={[styles.hero, { backgroundColor: heroColors.bg }, scheme === "light" && styles.heroLightSeam]}>
+        <View style={styles.logoRow}>
+          <AppLogo width={172} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search products and vendors"
+            hitSlop={8}
+            onPress={() => goToShop()}
+            style={styles.searchIcon}
+          >
+            <Ionicons name="search" size={IconSize.md} color={heroColors.textPrimary} />
+          </Pressable>
+        </View>
+
         <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Search products and vendors"
-          hitSlop={8}
           onPress={() => goToShop()}
-          style={styles.searchIcon}
+          style={[styles.searchField, { backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.14)" }]}
+          accessibilityRole="button"
+          accessibilityLabel="Search products, vendors and categories"
         >
-          <Ionicons name="search" size={22} color={Color.brand.textPrimary} />
+          <Ionicons name="search" size={IconSize.sm} color={heroColors.textSecondary} />
+          <Text variant="body" tone="secondary" numberOfLines={1} style={{ color: heroColors.textSecondary }}>
+            Search products, vendors&hellip;
+          </Text>
         </Pressable>
+
+        <View style={styles.quickActionRow}>
+          {quickActions.map((action) => (
+            <Pressable
+              key={action.key}
+              onPress={action.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: heroColors.goldStrong }]}>
+                <Ionicons name={action.icon} size={IconSize.md} color={heroColors.bg} />
+              </View>
+              <Text variant="smallMedium" style={{ color: heroColors.textPrimary }}>
+                {action.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
-      <Text variant="small" tone="goldOnDark" style={styles.tagline}>
-        CONNECT &middot; SOURCE &middot; GROW
-      </Text>
 
-      <Pressable onPress={() => goToShop()} style={styles.searchField} accessibilityRole="button" accessibilityLabel="Search products, vendors and categories">
-        <Ionicons name="search" size={18} color={Color.brand.textSecondary} />
-        <Text variant="body" tone="onDarkMuted">
-          Search products, vendors&hellip;
-        </Text>
-      </Pressable>
-
-      <LinearGradient
-        colors={[Color.brand.surfaceAlt, Color.brand.surface, Color.brand.bg]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <Text variant="h1" tone="onDark" style={styles.heroTitle}>
-          Africa&rsquo;s beauty supply chain, sourced globally.
-        </Text>
-        <Text variant="body" tone="onDarkMuted" style={styles.heroBody}>
-          Browse verified vendors, shop authentic hair &amp; beauty products, and source anything you can&rsquo;t
-          find.
-        </Text>
-        <Button label="Explore Now" variant="pink" onPress={() => router.push("/(tabs)/explore")} style={styles.heroButton} />
-      </LinearGradient>
-
-      {isError && (
-        <ErrorState title="Could not load Home" message={friendlyErrorMessage(error)} onRetry={refetch} tone="onDark" />
-      )}
+      {isError && <ErrorState title="Could not load Home" message={friendlyErrorMessage(error)} onRetry={refetch} />}
 
       {isPending && !isError && (
         <View style={styles.loadingBlock}>
-          <Skeleton height={36} width="90%" tone="onDark" radius={Radius.pill} style={styles.centerSelf} />
+          <View style={styles.loadingRow}>
+            {[0, 1, 2, 3].map((key) => (
+              <Skeleton key={key} height={32} width={72} radius={Radius.pill} />
+            ))}
+          </View>
           <View style={styles.loadingRow}>
             {[0, 1, 2].map((key) => (
-              <Skeleton key={key} height={160} width={150} tone="onDark" radius={Radius.md} />
+              <Skeleton key={key} height={172} width={148} radius={Radius.md} />
             ))}
           </View>
         </View>
@@ -88,43 +120,58 @@ export default function HomeScreen() {
         <>
           {data.categories.length > 0 && (
             <View style={styles.section}>
-              <SectionHeader title="Shop by category" tone="onDark" onPressAction={() => goToShop()} />
+              <SectionHeader title="Shop by category" onPressAction={() => goToShop()} />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                 {data.categories.map((category) => (
-                  <CategoryTile key={category.id} label={category.name} tone="onDark" onPress={() => goToShop(category.slug)} />
+                  <CategoryTile key={category.id} label={category.name} onPress={() => goToShop(category.slug)} />
                 ))}
               </ScrollView>
             </View>
           )}
 
           <View style={styles.section}>
-            <SectionHeader title="Featured products" tone="onDark" onPressAction={() => goToShop()} />
+            <SectionHeader title="Featured products" onPressAction={() => goToShop()} />
             {data.featuredListings.length === 0 ? (
-              <Text variant="body" tone="onDarkMuted" style={styles.emptyText}>
-                New products are on the way -- check back soon.
+              <Text variant="body" tone="secondary" style={styles.emptyText}>
+                New products are on the way — check back soon.
               </Text>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productRow}>
                 {data.featuredListings.map((listing) => (
-                  <ProductCard key={listing.id} listing={listing} width={168} onPress={() => goToListing(listing.id)} />
+                  <ProductCard key={listing.id} listing={listing} width={148} onPress={() => goToListing(listing.id)} />
                 ))}
               </ScrollView>
             )}
           </View>
 
-          <Pressable style={styles.sourceCta} onPress={() => router.push("/(tabs)/source")} accessibilityRole="button">
-            <View style={styles.sourceCtaIcon}>
-              <Ionicons name="earth" size={22} color={Color.brand.bg} />
+          <Pressable style={[styles.exploreTeaser, { backgroundColor: colors.pinkSurface }]} onPress={() => router.push("/(tabs)/explore")} accessibilityRole="button">
+            <View style={[styles.exploreTeaserIcon, { backgroundColor: colors.surface }]}>
+              <Ionicons name="sparkles" size={20} color={colors.pink} />
             </View>
-            <View style={styles.sourceCtaText}>
-              <Text variant="bodyMedium" tone="onDark">
-                Can&rsquo;t find it? Source it.
+            <View style={styles.teaserText}>
+              <Text variant="bodyMedium" tone="primary">
+                See what beauty pros are creating
               </Text>
-              <Text variant="small" tone="onDarkMuted">
-                Tell us what you need &mdash; we&rsquo;ll find a vendor for it.
+              <Text variant="small" tone="secondary">
+                Browse real work from stylists, salons and MUAs on Explore.
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Color.goldOnDark} />
+            <Ionicons name="chevron-forward" size={18} color={colors.pink} />
+          </Pressable>
+
+          <Pressable style={[styles.sourceCta, { backgroundColor: colors.goldSurface }]} onPress={() => router.push("/(tabs)/source")} accessibilityRole="button">
+            <View style={[styles.sourceCtaIcon, { backgroundColor: colors.gold }]}>
+              <Ionicons name="camera" size={22} color={colors.surface} />
+            </View>
+            <View style={styles.teaserText}>
+              <Text variant="bodyMedium" tone="primary">
+                Looking for something? Source from a photo.
+              </Text>
+              <Text variant="small" tone="secondary">
+                Snap or upload a picture — we&rsquo;ll find a vendor for it.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.goldStrong} />
           </Pressable>
         </>
       )}
@@ -133,67 +180,69 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
+  screenContent: { paddingBottom: Spacing.xxl },
+  hero: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, paddingBottom: Spacing.lg },
+  heroLightSeam: { borderBottomLeftRadius: Radius.xl, borderBottomRightRadius: Radius.xl },
+  logoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   searchIcon: { padding: Spacing.xxs },
-  tagline: { paddingHorizontal: Spacing.md, letterSpacing: 2, marginTop: 2 },
   searchField: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
-    marginHorizontal: Spacing.md,
     marginTop: Spacing.md,
     paddingHorizontal: Spacing.md,
-    height: 46,
+    height: 44,
     borderRadius: Radius.pill,
-    backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.14)",
   },
-  hero: {
-    margin: Spacing.md,
-    marginTop: Spacing.lg,
-    padding: Spacing.lg,
+  quickActionRow: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.md },
+  quickAction: { flex: 1, alignItems: "center", gap: 6 },
+  pressed: { opacity: 0.85 },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
     borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Color.brand.border,
-    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  heroTitle: { marginBottom: Spacing.xs },
-  heroBody: { marginBottom: Spacing.md },
-  heroButton: { alignSelf: "flex-start" },
   loadingBlock: { paddingHorizontal: Spacing.md, marginTop: Spacing.lg, gap: Spacing.md },
   loadingRow: { flexDirection: "row", gap: Spacing.sm },
-  centerSelf: { alignSelf: "center" },
-  section: { marginTop: Spacing.xl },
+  section: { marginTop: Spacing.lg },
   chipRow: { paddingHorizontal: Spacing.md, gap: Spacing.xs },
   productRow: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
   emptyText: { paddingHorizontal: Spacing.md },
+  exploreTeaser: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
+  },
+  exploreTeaserIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  teaserText: { flex: 1 },
   sourceCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,
-    margin: Spacing.md,
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.xxl,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    backgroundColor: Color.brand.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Color.brand.border,
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
   },
   sourceCtaIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: Color.goldOnDark,
+    borderRadius: Radius.lg,
     alignItems: "center",
     justifyContent: "center",
   },
-  sourceCtaText: { flex: 1 },
 });

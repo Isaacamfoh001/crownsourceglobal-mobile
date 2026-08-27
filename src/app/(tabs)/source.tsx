@@ -4,7 +4,8 @@ import { StyleSheet, View } from "react-native";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
-import { Color, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 const STEPS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
   { icon: "create-outline", label: "Describe what you need" },
@@ -16,51 +17,48 @@ const STEPS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
 
 /**
  * Source is a real Customer nav tab (MOBILE_V1_PLAN.md section 6.1) but
- * the sourcing/quotation API isn't part of M19.0's scope (no
- * POST /api/v1/sourcing yet) -- this is an honest value-prop placeholder,
- * not a form that would silently do nothing on submit.
+ * the sourcing/quotation API isn't part of scope yet (no POST
+ * /api/v1/sourcing) -- this is an honest value-prop placeholder, not a
+ * form that would silently do nothing on submit.
  */
 export default function SourceScreen() {
+  const { colors } = useAppTheme();
+
   return (
-    <Screen surface="brand">
+    <Screen>
       <View style={styles.container}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="earth" size={36} color={Color.brand.bg} />
+        <View style={[styles.iconCircle, { backgroundColor: colors.gold }]}>
+          <Ionicons name="camera" size={32} color={colors.surface} />
         </View>
 
-        <Text variant="display" tone="onDark" style={styles.center}>
-          Source anything, from anywhere.
+        <Text variant="screenTitle" tone="primary" style={styles.center}>
+          Saw it somewhere? Snap or upload it.
         </Text>
-        <Text variant="body" tone="onDarkMuted" style={[styles.center, styles.body]}>
-          Can&rsquo;t find a product in the marketplace? Describe what you&rsquo;re looking for and CrownSourceGlobal
-          will connect you with a vendor who can supply it &mdash; anywhere in the world.
+        <Text variant="body" tone="secondary" style={[styles.center, styles.body]}>
+          Screenshot a look from Instagram or TikTok, describe what you need, and CrownSourceGlobal will connect you
+          with a vendor who can supply it &mdash; anywhere in the world.
         </Text>
 
         <View style={styles.stepList}>
           {STEPS.map((step) => (
             <View key={step.label} style={styles.stepRow}>
-              <View style={styles.stepIcon}>
-                <Ionicons name={step.icon} size={18} color={Color.goldOnDark} />
+              <View style={[styles.stepIcon, { backgroundColor: colors.goldSurface }]}>
+                <Ionicons name={step.icon} size={18} color={colors.goldStrong} />
               </View>
-              <Text variant="body" tone="onDark">
+              <Text variant="body" tone="primary">
                 {step.label}
               </Text>
             </View>
           ))}
         </View>
 
-        <View style={styles.comingSoonBadge}>
-          <Text variant="caption" tone="goldOnDark">
+        <View style={[styles.comingSoonBadge, { borderColor: colors.borderPremium }]}>
+          <Text variant="caption" tone="gold">
             NATIVE SOURCING -- COMING SOON
           </Text>
         </View>
 
-        <Button
-          label="Browse the marketplace instead"
-          variant="darkOutline"
-          onPress={() => router.push("/(tabs)/shop")}
-          style={styles.button}
-        />
+        <Button label="Browse the marketplace instead" variant="outline" onPress={() => router.push("/(tabs)/shop")} style={styles.button} />
       </View>
     </Screen>
   );
@@ -72,7 +70,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Color.goldOnDark,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.xs,
@@ -85,13 +82,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(203,164,92,0.14)",
     alignItems: "center",
     justifyContent: "center",
   },
   comingSoonBadge: {
     borderWidth: 1,
-    borderColor: Color.brand.border,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,

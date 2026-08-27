@@ -1,12 +1,9 @@
 import type { ReactNode } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Color } from "@/constants/theme";
-
-export type ScreenSurface = "brand" | "commerce";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type ScreenProps = {
-  surface?: ScreenSurface;
   scroll?: boolean;
   children: ReactNode;
   contentStyle?: ViewStyle;
@@ -16,41 +13,25 @@ type ScreenProps = {
   edges?: ("top" | "bottom" | "left" | "right")[];
 };
 
-/** Shared screen container: safe-area aware, brand (dark) vs commerce (light) canvas, optional pull-to-refresh scroll. */
-export function Screen({
-  surface = "commerce",
-  scroll = true,
-  children,
-  contentStyle,
-  onRefresh,
-  refreshing = false,
-  edges = ["top"],
-}: ScreenProps) {
-  const backgroundColor = surface === "brand" ? Color.brand.bg : Color.commerce.bg;
+/** Shared screen container: safe-area aware, theme-background, optional pull-to-refresh scroll. */
+export function Screen({ scroll = true, children, contentStyle, onRefresh, refreshing = false, edges = ["top"] }: ScreenProps) {
+  const { colors } = useAppTheme();
 
   if (!scroll) {
     return (
-      <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor }]}>
+      <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor: colors.bg }]}>
         <View style={[styles.flex, contentStyle]}>{children}</View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor }]}>
+    <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor: colors.bg }]}>
       <ScrollView
         style={styles.flex}
         contentContainerStyle={contentStyle}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={surface === "brand" ? Color.goldOnDark : Color.pink}
-            />
-          ) : undefined
-        }
+        refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.pink} /> : undefined}
       >
         {children}
       </ScrollView>

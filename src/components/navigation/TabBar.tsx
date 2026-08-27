@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Color, Radius, Spacing, TouchTarget } from "@/constants/theme";
+import { Spacing, TouchTarget } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { Text } from "@/components/ui/Text";
 
 const ICONS: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: keyof typeof Ionicons.glyphMap }> = {
@@ -24,15 +25,17 @@ const LABELS: Record<string, string> = {
 /**
  * Custom bottom tab bar — deliberately not expo-router's experimental
  * unstable-native-tabs (native tab bars can't reproduce the client
- * mockup's pink active-pill treatment), and kept as one persistent dark
- * bar across every tab rather than recoloring per screen, so Home's dark
- * canvas and Shop/Explore's light canvas still read as one product.
+ * mockup's icon+label treatment with a pink active state), theme-aware
+ * (dark charcoal bar in dark mode, warm-pearl bar in light mode). Every tab
+ * always shows icon + label (fixed-width columns, no pill that grows/
+ * shrinks with the active label) so nothing can overflow at 320px.
  */
 export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useAppTheme();
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Spacing.sm) }]}>
+    <View style={[styles.bar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, Spacing.xs) }]}>
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const focused = state.index === index;
@@ -53,21 +56,14 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             accessibilityRole="button"
             accessibilityState={{ selected: focused }}
             accessibilityLabel={label}
-            style={styles.tabHitArea}
+            style={styles.tab}
           >
-            <View style={[styles.pill, focused && styles.pillActive]}>
-              <Ionicons name={focused ? icons.active : icons.inactive} size={22} color={focused ? Color.inverseText : Color.brand.textSecondary} />
-              {focused && (
-                <Text variant="caption" tone="inverse" style={styles.label}>
-                  {label}
-                </Text>
-              )}
+            <View style={[styles.iconWrap, focused && { backgroundColor: colors.pinkSurface }]}>
+              <Ionicons name={focused ? icons.active : icons.inactive} size={20} color={focused ? colors.pink : colors.textMuted} />
             </View>
-            {!focused && (
-              <Text variant="caption" tone="onDarkMuted" style={styles.inactiveLabel}>
-                {label}
-              </Text>
-            )}
+            <Text variant="caption" tone={focused ? "pink" : "muted"} numberOfLines={1} style={styles.label}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}
@@ -78,30 +74,23 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
-    backgroundColor: Color.brand.bg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Color.brand.border,
     paddingTop: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
+    paddingHorizontal: 4,
   },
-  tabHitArea: {
+  tab: {
     flex: 1,
     minHeight: TouchTarget,
     alignItems: "center",
     justifyContent: "center",
     gap: 2,
   },
-  pill: {
-    flexDirection: "row",
+  iconWrap: {
+    width: 30,
+    height: 22,
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 8,
-    borderRadius: Radius.pill,
+    justifyContent: "center",
+    borderRadius: 8,
   },
-  pillActive: {
-    backgroundColor: Color.pink,
-  },
-  label: { marginTop: 0 },
-  inactiveLabel: { marginTop: 2 },
+  label: { includeFontPadding: false },
 });

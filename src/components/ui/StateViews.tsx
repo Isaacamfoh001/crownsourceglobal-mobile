@@ -1,42 +1,44 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
-import { Color, IconSize, Spacing } from "@/constants/theme";
+import { IconSize, Spacing } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { Button } from "./Button";
 import { Text } from "./Text";
 
 type StateViewProps = {
   title: string;
   message?: string;
-  tone?: "onDark" | "onLight";
 };
 
 /** Shown when an API-backed screen fails to load — never a raw fetch/HTTP error string (MOBILE_V1_PLAN.md §36). */
-export function ErrorState({ title = "Something went wrong", message, onRetry, tone = "onLight" }: StateViewProps & { onRetry: () => void }) {
+export function ErrorState({ title = "Something went wrong", message, onRetry }: StateViewProps & { onRetry: () => void }) {
+  const { colors } = useAppTheme();
   return (
     <View style={styles.container}>
-      <Ionicons name="cloud-offline-outline" size={IconSize.xl} color={tone === "onDark" ? Color.brand.textSecondary : Color.commerce.textMuted} />
-      <Text variant="title" tone={tone === "onDark" ? "onDark" : "onLight"} style={styles.center}>
+      <Ionicons name="cloud-offline-outline" size={IconSize.xl} color={colors.textMuted} />
+      <Text variant="sectionHeading" tone="primary" style={styles.center}>
         {title}
       </Text>
       {message && (
-        <Text variant="body" tone={tone === "onDark" ? "onDarkMuted" : "onLightMuted"} style={styles.center}>
+        <Text variant="body" tone="secondary" style={styles.center}>
           {message}
         </Text>
       )}
-      <Button label="Try again" onPress={onRetry} variant={tone === "onDark" ? "darkOutline" : "lightOutline"} style={styles.button} />
+      <Button label="Try again" onPress={onRetry} variant="outline" style={styles.button} />
     </View>
   );
 }
 
-export function EmptyState({ title, message, icon = "search-outline", tone = "onLight" }: StateViewProps & { icon?: keyof typeof Ionicons.glyphMap }) {
+export function EmptyState({ title, message, icon = "search-outline" }: StateViewProps & { icon?: keyof typeof Ionicons.glyphMap }) {
+  const { colors } = useAppTheme();
   return (
     <View style={styles.container}>
-      <Ionicons name={icon} size={IconSize.xl} color={tone === "onDark" ? Color.brand.textSecondary : Color.commerce.textMuted} />
-      <Text variant="title" tone={tone === "onDark" ? "onDark" : "onLight"} style={styles.center}>
+      <Ionicons name={icon} size={IconSize.xl} color={colors.textMuted} />
+      <Text variant="sectionHeading" tone="primary" style={styles.center}>
         {title}
       </Text>
       {message && (
-        <Text variant="body" tone={tone === "onDark" ? "onDarkMuted" : "onLightMuted"} style={styles.center}>
+        <Text variant="body" tone="secondary" style={styles.center}>
           {message}
         </Text>
       )}

@@ -2,14 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
-import { Color, Radius, Spacing } from "@/constants/theme";
+import { AppearanceSetting } from "@/components/ui/AppearanceSetting";
+import { Radius, Spacing } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 const UPCOMING: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
   { icon: "receipt-outline", label: "Orders" },
   { icon: "earth-outline", label: "Sourcing requests" },
   { icon: "heart-outline", label: "Saved products" },
   { icon: "chatbubble-ellipses-outline", label: "Messages" },
-  { icon: "settings-outline", label: "Settings" },
 ];
 
 /**
@@ -17,35 +18,42 @@ const UPCOMING: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
  * for navigation completeness, but native sign-in isn't built until
  * @better-auth/expo is validated in a later milestone — so this
  * deliberately doesn't offer a "Sign in" button that would do nothing.
+ * Appearance is real, local-only, and works today regardless of sign-in.
  */
 export default function AccountScreen() {
+  const { colors } = useAppTheme();
+
   return (
-    <Screen surface="commerce">
+    <Screen>
       <View style={styles.container}>
-        <View style={styles.iconCircle}>
-          <Ionicons name="person" size={34} color={Color.commerce.surface} />
+        <View style={[styles.iconCircle, { backgroundColor: colors.textPrimary }]}>
+          <Ionicons name="person" size={34} color={colors.surface} />
         </View>
 
-        <Text variant="h1" tone="onLight" style={styles.center}>
+        <Text variant="screenTitle" tone="primary" style={styles.center}>
           Sign in to manage your account
         </Text>
-        <Text variant="body" tone="onLightMuted" style={[styles.center, styles.body]}>
+        <Text variant="body" tone="secondary" style={[styles.center, styles.body]}>
           Sign in to manage orders, sourcing requests, saved items and your CrownSourceGlobal profile.
         </Text>
 
-        <View style={styles.comingSoonBadge}>
-          <Text variant="caption" tone="goldOnLight">
+        <View style={[styles.comingSoonBadge, { borderColor: colors.gold }]}>
+          <Text variant="caption" tone="gold">
             NATIVE SIGN-IN — COMING SOON
           </Text>
         </View>
 
+        <View style={styles.section}>
+          <AppearanceSetting />
+        </View>
+
         <View style={styles.list}>
           {UPCOMING.map((item) => (
-            <View key={item.label} style={styles.listRow}>
-              <View style={styles.listIcon}>
-                <Ionicons name={item.icon} size={18} color={Color.commerce.textSecondary} />
+            <View key={item.label} style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.listIcon, { backgroundColor: colors.surfaceSubtle }]}>
+                <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
               </View>
-              <Text variant="body" tone="onLightMuted">
+              <Text variant="body" tone="secondary">
                 {item.label}
               </Text>
             </View>
@@ -62,7 +70,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Color.commerce.textPrimary,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.xs,
@@ -71,11 +78,11 @@ const styles = StyleSheet.create({
   body: { marginBottom: Spacing.xs },
   comingSoonBadge: {
     borderWidth: 1,
-    borderColor: Color.gold,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
+  section: { alignSelf: "stretch", marginTop: Spacing.lg },
   list: { alignSelf: "stretch", marginTop: Spacing.lg, gap: Spacing.sm },
   listRow: {
     flexDirection: "row",
@@ -83,15 +90,12 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radius.md,
-    backgroundColor: Color.commerce.surface,
     borderWidth: 1,
-    borderColor: Color.commerce.border,
   },
   listIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Color.commerce.surfaceSubtle,
     alignItems: "center",
     justifyContent: "center",
   },

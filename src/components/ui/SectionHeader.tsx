@@ -1,26 +1,22 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { Spacing } from "@/constants/theme";
-import { Text, type TextTone } from "./Text";
+import { Text } from "./Text";
 
 type SectionHeaderProps = {
   title: string;
   onPressAction?: () => void;
   actionLabel?: string;
-  tone?: "onDark" | "onLight";
 };
 
-export function SectionHeader({ title, onPressAction, actionLabel = "View all", tone = "onLight" }: SectionHeaderProps) {
-  const titleTone: TextTone = tone === "onDark" ? "onDark" : "onLight";
-  const actionTone: TextTone = tone === "onDark" ? "goldOnDark" : "pink";
-
+export function SectionHeader({ title, onPressAction, actionLabel = "View all" }: SectionHeaderProps) {
   return (
     <View style={styles.row}>
-      <Text variant="h2" tone={titleTone}>
+      <Text variant="sectionHeading" tone="primary">
         {title}
       </Text>
       {onPressAction && (
         <Pressable onPress={onPressAction} hitSlop={8} accessibilityRole="button" accessibilityLabel={`${actionLabel}: ${title}`}>
-          <Text variant="smallMedium" tone={actionTone}>
+          <Text variant="smallMedium" tone="pink">
             {actionLabel}
           </Text>
         </Pressable>

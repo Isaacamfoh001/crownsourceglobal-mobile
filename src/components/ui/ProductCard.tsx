@@ -1,6 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Pressable, StyleSheet, View } from "react-native";
-import { Color, Radius, Shadow, Spacing } from "@/constants/theme";
+import { IconSize, Radius, Spacing } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatMoney } from "@/lib/format";
 import type { ListingSummaryDTO } from "@/types/api";
 import { AvailabilityBadge } from "./Badge";
@@ -12,23 +14,28 @@ type ProductCardProps = {
   width?: number;
 };
 
-/** The product-card primitive reused by Home, Explore, Shop and the Vendor storefront — one image treatment, one price/title/vendor hierarchy. */
+/** The product-card primitive reused by Home, Shop and the Vendor storefront — one image treatment, one price/title/vendor hierarchy. Explore uses ExplorePostCard instead — a product grid and a visual-discovery feed are different products, not the same card at a different width. */
 export function ProductCard({ listing, onPress, width }: ProductCardProps) {
+  const { colors, shadow } = useAppTheme();
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${listing.title}, ${formatMoney(listing.price)}, sold by ${listing.vendor.companyName}`}
-      style={({ pressed }) => [styles.card, width ? { width } : styles.flexCard, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: colors.surface, borderColor: colors.border, ...shadow.card },
+        width ? { width } : styles.flexCard,
+        pressed && styles.pressed,
+      ]}
     >
-      <View style={styles.imageWrap}>
+      <View style={[styles.imageWrap, { backgroundColor: colors.surfaceSubtle }]}>
         {listing.primaryImage ? (
           <Image source={{ uri: listing.primaryImage }} style={styles.image} contentFit="cover" transition={150} />
         ) : (
           <View style={[styles.image, styles.imageFallback]}>
-            <Text variant="small" tone="onLightFaint">
-              No image
-            </Text>
+            <Ionicons name="image-outline" size={IconSize.lg} color={colors.textMuted} />
           </View>
         )}
         {listing.availabilityStatus !== "IN_STOCK" && (
@@ -39,24 +46,24 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
       </View>
 
       <View style={styles.body}>
-        <Text variant="small" tone="onLightMuted" numberOfLines={1}>
+        <Text variant="small" tone="secondary" numberOfLines={1}>
           {listing.vendor.companyName}
         </Text>
-        <Text variant="bodyMedium" tone="onLight" numberOfLines={2} style={styles.title}>
+        <Text variant="cardTitle" tone="primary" numberOfLines={2} style={styles.title}>
           {listing.title}
         </Text>
         <View style={styles.priceRow}>
-          <Text variant="bodyMedium" tone="pink">
+          <Text variant="price" tone="pink" numberOfLines={1} style={styles.priceText}>
             {formatMoney(listing.price)}
           </Text>
           {listing.hasBulkPricing && (
-            <Text variant="caption" tone="goldOnLight">
-              BULK PRICING
+            <Text variant="caption" tone="gold" numberOfLines={1}>
+              BULK
             </Text>
           )}
         </View>
         {listing.moq > 1 && (
-          <Text variant="small" tone="onLightFaint">
+          <Text variant="small" tone="muted" numberOfLines={1}>
             MOQ {listing.moq}
           </Text>
         )}
@@ -69,23 +76,20 @@ const CARD_RADIUS = Radius.md;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Color.commerce.surface,
     borderRadius: CARD_RADIUS,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Color.commerce.border,
-    ...Shadow.card,
   },
   flexCard: { flex: 1 },
   pressed: { opacity: 0.9 },
   imageWrap: {
     aspectRatio: 1,
-    backgroundColor: Color.commerce.surfaceSubtle,
   },
   image: { width: "100%", height: "100%" },
   imageFallback: { alignItems: "center", justifyContent: "center" },
   badgeOverlay: { position: "absolute", top: Spacing.xs, left: Spacing.xs },
   body: { padding: Spacing.sm, gap: 2 },
-  title: { minHeight: 40 },
-  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2 },
+  title: { minHeight: 38 },
+  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2, gap: Spacing.xxs },
+  priceText: { flexShrink: 1 },
 });

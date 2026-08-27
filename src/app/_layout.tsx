@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text as RNText, View } from "react-native";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { PlayfairDisplay_600SemiBold, PlayfairDisplay_700Bold, useFonts } from "@expo-google-fonts/playfair-display";
 import { queryClient } from "@/lib/api/query-client";
 import { ENV } from "@/lib/env";
-import { Color, Spacing } from "@/constants/theme";
-import { Text } from "@/components/ui/Text";
+import { Palette, Spacing, Type } from "@/constants/theme";
+import { AppThemeProvider, useAppTheme } from "@/hooks/useAppTheme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+/** Sets the status bar's light/dark content based on OUR resolved theme, not just OS appearance — matters because a user can explicitly pick Dark while the OS is in Light (or vice versa), and the status bar needs to follow the theme they actually see, not the system default. */
+function ThemedStatusBar() {
+  const { scheme } = useAppTheme();
+  return <StatusBar style={scheme === "dark" ? "light" : "dark"} />;
+}
 
 /** Font loading must never block startup (MOBILE_V1_PLAN.md §25.2/§38) — a 2.5s ceiling lets the UI proceed on the system font if the Playfair Display fetch is slow, instead of hanging on the splash screen indefinitely. */
 const FONT_LOAD_TIMEOUT_MS = 2500;
@@ -33,35 +40,38 @@ export default function RootLayout() {
   if (!ready) return null;
 
   if (!ENV.ok) {
+    // Pre-provider fatal state — deliberately styled with the static dark
+    // palette (not useAppTheme()) rather than nesting a whole provider
+    // tree just for this rare bootstrap screen.
     return (
       <View style={styles.configScreen} onLayout={onLayoutRootView}>
-        <Text variant="h1" tone="onDark" style={styles.center}>
-          Configuration required
-        </Text>
-        <Text variant="body" tone="onDarkMuted" style={[styles.center, styles.configMessage]}>
-          {ENV.message}
-        </Text>
+        <StatusBar style="light" />
+        <RNText style={[Type.screenTitle, styles.center, { color: Palette.dark.textPrimary }]}>Configuration required</RNText>
+        <RNText style={[Type.body, styles.center, styles.configMessage, { color: Palette.dark.textSecondary }]}>{ENV.message}</RNText>
       </View>
     );
   }
 
   return (
-    <SafeAreaProvider onLayout={onLayoutRootView}>
-      <QueryClientProvider client={queryClient}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="listing/[id]" options={{ animation: "slide_from_right" }} />
-          <Stack.Screen name="vendor/[slug]" options={{ animation: "slide_from_right" }} />
-        </Stack>
-      </QueryClientProvider>
-    </SafeAreaProvider>
+    <AppThemeProvider>
+      <ThemedStatusBar />
+      <SafeAreaProvider onLayout={onLayoutRootView}>
+        <QueryClientProvider client={queryClient}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="listing/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor/[slug]" options={{ animation: "slide_from_right" }} />
+          </Stack>
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </AppThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
   configScreen: {
     flex: 1,
-    backgroundColor: Color.brand.bg,
+    backgroundColor: Palette.dark.bg,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: Spacing.xl,

@@ -106,15 +106,6 @@ export type HomeResponseDTO = {
   featuredListings: ListingSummaryDTO[];
 };
 
-export type ExploreSectionDTO = {
-  category: CategoryDTO;
-  listings: ListingSummaryDTO[];
-};
-
-export type ExploreResponseDTO = {
-  sections: ExploreSectionDTO[];
-};
-
 export type VendorStorefrontResponseDTO = {
   vendor: VendorStorefrontDTO;
   listings: Page<ListingSummaryDTO>;

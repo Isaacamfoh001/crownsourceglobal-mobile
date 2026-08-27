@@ -5,19 +5,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ImageGallery } from "@/components/ui/ImageGallery";
 import { Text } from "@/components/ui/Text";
 import { AvailabilityBadge } from "@/components/ui/Badge";
+import { IconButton } from "@/components/ui/IconButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
-import { Color, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatMoney } from "@/lib/format";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import { useListingDetail } from "@/features/listing/useListingDetail";
 
+/**
+ * Product Detail (M19.2 §18): image first, one flowing information column —
+ * not a separate bordered card for every fact. Only bulk pricing and
+ * specs get a bordered list (they're tabular data, not prose), everything
+ * else is plain vertical rhythm.
+ */
 export default function ListingDetailScreen() {
+  const { colors } = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: listing, isPending, isError, error, refetch } = useListingDetail(id);
 
   return (
-    <View style={styles.flex}>
+    <View style={[styles.flex, { backgroundColor: colors.bg }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {isPending && !isError && (
           <SafeAreaView edges={["top"]}>
@@ -31,7 +40,7 @@ export default function ListingDetailScreen() {
         )}
 
         {isError && (
-          <SafeAreaView edges={["top"]} style={styles.errorSafeArea}>
+          <SafeAreaView edges={["top"]}>
             <ErrorState title="Couldn't load this product" message={friendlyErrorMessage(error)} onRetry={refetch} />
           </SafeAreaView>
         )}
@@ -47,18 +56,18 @@ export default function ListingDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`View ${listing.vendor.companyName}'s storefront`}
               >
-                <Text variant="smallMedium" tone="onLightMuted">
+                <Text variant="smallMedium" tone="secondary" numberOfLines={1} style={styles.vendorRowText}>
                   {listing.vendor.companyName}
                 </Text>
-                <Ionicons name="chevron-forward" size={14} color={Color.commerce.textSecondary} />
+                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
               </Pressable>
 
-              <Text variant="h1" tone="onLight" style={styles.title}>
+              <Text variant="screenTitle" tone="primary" numberOfLines={3} style={styles.title}>
                 {listing.title}
               </Text>
 
               <View style={styles.priceRow}>
-                <Text variant="h1" tone="pink">
+                <Text variant="priceLarge" tone="pink" numberOfLines={1} style={styles.priceValue}>
                   {formatMoney(listing.price)}
                 </Text>
                 <AvailabilityBadge status={listing.availabilityStatus} />
@@ -74,16 +83,16 @@ export default function ListingDetailScreen() {
 
               {listing.bulkPriceTiers.length > 0 && (
                 <View style={styles.section}>
-                  <Text variant="h2" tone="onLight" style={styles.sectionTitle}>
+                  <Text variant="sectionHeading" tone="primary" style={styles.sectionTitle}>
                     Bulk pricing
                   </Text>
-                  <View style={styles.tiersCard}>
+                  <View style={[styles.tiersCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     {listing.bulkPriceTiers.map((tier) => (
-                      <View key={tier.id} style={styles.tierRow}>
-                        <Text variant="body" tone="onLightMuted">
+                      <View key={tier.id} style={[styles.tierRow, { borderBottomColor: colors.border }]}>
+                        <Text variant="body" tone="secondary">
                           {tier.maxQuantity ? `${tier.minQuantity}–${tier.maxQuantity} units` : `${tier.minQuantity}+ units`}
                         </Text>
-                        <Text variant="bodyMedium" tone="onLight">
+                        <Text variant="bodyMedium" tone="primary">
                           {formatMoney(tier.unitPrice)} / unit
                         </Text>
                       </View>
@@ -93,26 +102,26 @@ export default function ListingDetailScreen() {
               )}
 
               <View style={styles.section}>
-                <Text variant="h2" tone="onLight" style={styles.sectionTitle}>
+                <Text variant="sectionHeading" tone="primary" style={styles.sectionTitle}>
                   Description
                 </Text>
-                <Text variant="body" tone="onLightMuted" style={styles.description}>
+                <Text variant="body" tone="secondary" style={styles.description}>
                   {listing.description}
                 </Text>
               </View>
 
               {listing.specs && Object.keys(listing.specs).length > 0 && (
                 <View style={styles.section}>
-                  <Text variant="h2" tone="onLight" style={styles.sectionTitle}>
+                  <Text variant="sectionHeading" tone="primary" style={styles.sectionTitle}>
                     Specifications
                   </Text>
-                  <View style={styles.tiersCard}>
+                  <View style={[styles.tiersCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                     {Object.entries(listing.specs).map(([key, value]) => (
-                      <View key={key} style={styles.tierRow}>
-                        <Text variant="body" tone="onLightMuted" style={styles.specKey}>
+                      <View key={key} style={[styles.tierRow, { borderBottomColor: colors.border }]}>
+                        <Text variant="body" tone="secondary" numberOfLines={2} style={styles.specKey}>
                           {key}
                         </Text>
-                        <Text variant="bodyMedium" tone="onLight" style={styles.specValue}>
+                        <Text variant="bodyMedium" tone="primary" numberOfLines={2} style={styles.specValue}>
                           {value}
                         </Text>
                       </View>
@@ -126,27 +135,27 @@ export default function ListingDetailScreen() {
       </ScrollView>
 
       <SafeAreaView edges={["top"]} style={styles.headerOverlay} pointerEvents="box-none">
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton}>
-          <Ionicons name="chevron-back" size={22} color={Color.commerce.textPrimary} />
-        </Pressable>
+        <View style={styles.backButtonWrap}>
+          <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </View>
       </SafeAreaView>
 
       {listing && (
-        <SafeAreaView edges={["bottom"]} style={styles.actionBar}>
+        <SafeAreaView edges={["bottom"]} style={[styles.actionBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
           <View style={styles.actionBarInner}>
             <View>
-              <Text variant="caption" tone="onLightFaint">
+              <Text variant="caption" tone="muted">
                 PRICE
               </Text>
-              <Text variant="h2" tone="pink">
+              <Text variant="price" tone="pink">
                 {formatMoney(listing.price)}
               </Text>
             </View>
-            <View style={styles.disabledCta}>
-              <Text variant="bodyMedium" tone="onLightFaint">
+            <View style={[styles.disabledCta, { backgroundColor: colors.surfaceSubtle }]}>
+              <Text variant="bodyMedium" tone="muted">
                 Add to Cart
               </Text>
-              <Text variant="caption" tone="onLightFaint">
+              <Text variant="caption" tone="muted">
                 Coming soon
               </Text>
             </View>
@@ -160,10 +169,10 @@ export default function ListingDetailScreen() {
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.metaItem}>
-      <Text variant="caption" tone="onLightFaint">
+      <Text variant="caption" tone="muted">
         {label.toUpperCase()}
       </Text>
-      <Text variant="bodyMedium" tone="onLight">
+      <Text variant="bodyMedium" tone="primary" numberOfLines={2}>
         {value}
       </Text>
     </View>
@@ -171,36 +180,26 @@ function MetaItem({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: Color.commerce.bg },
+  flex: { flex: 1 },
   scrollContent: { paddingBottom: 110 },
   loadingBody: { padding: Spacing.md, gap: Spacing.sm },
   gap: { marginTop: Spacing.sm },
-  errorSafeArea: { backgroundColor: Color.commerce.bg },
   headerOverlay: { position: "absolute", top: 0, left: 0 },
-  backButton: {
-    marginTop: Spacing.sm,
-    marginLeft: Spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  backButtonWrap: { marginTop: Spacing.xs, marginLeft: Spacing.sm },
   body: { padding: Spacing.md, gap: Spacing.xs },
   vendorRow: { flexDirection: "row", alignItems: "center", gap: 2 },
+  vendorRowText: { flexShrink: 1 },
   title: { marginTop: 2 },
-  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: Spacing.xs },
-  metaGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.md, marginTop: Spacing.md },
+  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: Spacing.sm, marginTop: Spacing.xs },
+  priceValue: { flexShrink: 1 },
+  metaGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.md },
   metaItem: { minWidth: "28%" },
   section: { marginTop: Spacing.lg },
   sectionTitle: { marginBottom: Spacing.xs },
   description: { lineHeight: 22 },
   tiersCard: {
-    backgroundColor: Color.commerce.surface,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Color.commerce.border,
     overflow: "hidden",
   },
   tierRow: {
@@ -210,7 +209,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Color.commerce.border,
   },
   specKey: { textTransform: "capitalize", flex: 1 },
   specValue: { flex: 1, textAlign: "right" },
@@ -219,9 +217,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Color.commerce.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Color.commerce.border,
   },
   actionBarInner: {
     flexDirection: "row",
@@ -235,6 +231,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: Radius.pill,
-    backgroundColor: Color.commerce.surfaceSubtle,
   },
 });

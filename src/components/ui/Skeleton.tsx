@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { Animated, StyleSheet, View, type ViewStyle } from "react-native";
-import { Color, Radius } from "@/constants/theme";
+import { Radius } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type SkeletonProps = {
   width?: number | `${number}%`;
   height: number;
   radius?: number;
   style?: ViewStyle;
-  tone?: "onDark" | "onLight";
 };
 
 /** Simple pulsing placeholder — no extra dependency. Used for every API-backed screen's initial loading state. */
-export function Skeleton({ width = "100%", height, radius = Radius.sm, style, tone = "onLight" }: SkeletonProps) {
+export function Skeleton({ width = "100%", height, radius = Radius.sm, style }: SkeletonProps) {
+  const { colors } = useAppTheme();
   const [opacity] = useState(() => new Animated.Value(0.4));
 
   useEffect(() => {
@@ -25,9 +26,7 @@ export function Skeleton({ width = "100%", height, radius = Radius.sm, style, to
     return () => loop.stop();
   }, [opacity]);
 
-  const bg = tone === "onDark" ? "rgba(255,255,255,0.08)" : Color.commerce.surfaceSubtle;
-
-  return <Animated.View style={[{ width, height, borderRadius: radius, backgroundColor: bg, opacity }, style]} />;
+  return <Animated.View style={[{ width, height, borderRadius: radius, backgroundColor: colors.surfaceSubtle, opacity }, style]} />;
 }
 
 export function SkeletonCardGrid({ count = 4 }: { count?: number }) {

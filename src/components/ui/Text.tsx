@@ -1,48 +1,51 @@
 import { Text as RNText, type TextProps as RNTextProps } from "react-native";
-import { Color, Type } from "@/constants/theme";
+import { Type, type ThemeColors } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 export type TextVariant = keyof typeof Type;
 
+/**
+ * Semantic tones only — no "onLight"/"onDark" split. The same tone resolves
+ * to the correct color under whichever theme is active (see useAppTheme),
+ * which is the whole point of M19.2's theme system: a component never
+ * needs to know which theme it's in.
+ */
 export type TextTone =
-  | "onDark"
-  | "onDarkMuted"
-  | "onLight"
-  | "onLightMuted"
-  | "onLightFaint"
-  | "goldOnDark"
-  | "goldOnLight"
+  | "primary"
+  | "secondary"
+  | "muted"
   | "pink"
-  | "inverse"
+  | "gold"
   | "success"
   | "warning"
-  | "error";
+  | "error"
+  /** Always light — for text over a scrim/photo, independent of theme. */
+  | "inverse"
+  /** Text/icons placed on top of a `pink`-filled surface (e.g. a primary button label). */
+  | "onAccent";
 
-function toneColor(tone: TextTone): string {
+function toneColor(tone: TextTone, colors: ThemeColors): string {
   switch (tone) {
-    case "onDark":
-      return Color.brand.textPrimary;
-    case "onDarkMuted":
-      return Color.brand.textSecondary;
-    case "onLight":
-      return Color.commerce.textPrimary;
-    case "onLightMuted":
-      return Color.commerce.textSecondary;
-    case "onLightFaint":
-      return Color.commerce.textMuted;
-    case "goldOnDark":
-      return Color.goldOnDark;
-    case "goldOnLight":
-      return Color.goldStrong;
+    case "primary":
+      return colors.textPrimary;
+    case "secondary":
+      return colors.textSecondary;
+    case "muted":
+      return colors.textMuted;
     case "pink":
-      return Color.pink;
-    case "inverse":
-      return Color.inverseText;
+      return colors.pink;
+    case "gold":
+      return colors.goldStrong;
     case "success":
-      return Color.success;
+      return colors.success;
     case "warning":
-      return Color.warning;
+      return colors.warning;
     case "error":
-      return Color.error;
+      return colors.error;
+    case "inverse":
+      return colors.textInverse;
+    case "onAccent":
+      return colors.textOnAccent;
   }
 }
 
@@ -52,6 +55,7 @@ export type TextComponentProps = RNTextProps & {
 };
 
 /** The one Text primitive every screen should use — carries the type scale and semantic color tokens so no screen hardcodes a font size or hex value. */
-export function Text({ variant = "body", tone = "onLight", style, ...rest }: TextComponentProps) {
-  return <RNText style={[Type[variant], { color: toneColor(tone) }, style]} {...rest} />;
+export function Text({ variant = "body", tone = "primary", style, ...rest }: TextComponentProps) {
+  const { colors } = useAppTheme();
+  return <RNText style={[Type[variant], { color: toneColor(tone, colors) }, style]} {...rest} />;
 }

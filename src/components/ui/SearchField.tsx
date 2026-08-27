@@ -1,39 +1,28 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TextInput, View } from "react-native";
-import { Color, IconSize, Radius, Spacing, TouchTarget } from "@/constants/theme";
+import { IconSize, Radius, Spacing, TouchTarget } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type SearchFieldProps = {
   value: string;
   onChangeText: (value: string) => void;
   placeholder?: string;
-  tone?: "onDark" | "onLight";
   onSubmitEditing?: () => void;
   editable?: boolean;
 };
 
-export function SearchField({
-  value,
-  onChangeText,
-  placeholder = "Search products, vendors…",
-  tone = "onLight",
-  onSubmitEditing,
-  editable = true,
-}: SearchFieldProps) {
-  const onDark = tone === "onDark";
-  const bg = onDark ? "rgba(255,255,255,0.10)" : Color.commerce.surface;
-  const borderColor = onDark ? "rgba(255,255,255,0.16)" : Color.commerce.border;
-  const textColor = onDark ? Color.brand.textPrimary : Color.commerce.textPrimary;
-  const placeholderColor = onDark ? Color.brand.textSecondary : Color.commerce.textMuted;
+export function SearchField({ value, onChangeText, placeholder = "Search products, vendors…", onSubmitEditing, editable = true }: SearchFieldProps) {
+  const { colors } = useAppTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: bg, borderColor }]}>
-      <Ionicons name="search" size={IconSize.md} color={placeholderColor} />
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Ionicons name="search" size={IconSize.md} color={colors.textMuted} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={placeholderColor}
-        style={[styles.input, { color: textColor }]}
+        placeholderTextColor={colors.textMuted}
+        style={[styles.input, { color: colors.textPrimary }]}
         returnKeyType="search"
         onSubmitEditing={onSubmitEditing}
         editable={editable}

@@ -1,20 +1,24 @@
 import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { ProductCard } from "@/components/ui/ProductCard";
+import { IconButton } from "@/components/ui/IconButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/StateViews";
-import { Color, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing, TouchTarget } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatSellerType } from "@/lib/format";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import { useVendorStorefront } from "@/features/vendor/useVendorStorefront";
 import type { ListingSummaryDTO } from "@/types/api";
 
+/** Vendor Storefront (M19.2 §19): a strong branded identity band (its own `surface` tone, separate from the page bg) that the product grid sits below — deliberately not just plain page background all the way down. */
 export default function VendorStorefrontScreen() {
+  const { colors } = useAppTheme();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const query = useVendorStorefront(slug);
 
@@ -27,15 +31,13 @@ export default function VendorStorefrontScreen() {
   const locationLine = vendor ? [vendor.city, vendor.region, vendor.country].filter(Boolean).join(", ") : null;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.flex}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" style={styles.backButton}>
-          <Ionicons name="chevron-back" size={22} color={Color.commerce.textPrimary} />
-        </Pressable>
-        <Text variant="title" tone="onLight" numberOfLines={1} style={styles.headerTitle}>
+    <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        <Text variant="cardTitle" tone="primary" numberOfLines={1} style={styles.headerTitle}>
           {vendor?.companyName ?? "Vendor"}
         </Text>
-        <View style={styles.backButton} />
+        <View style={styles.headerSpacer} />
       </View>
 
       {query.isPending && (
@@ -63,45 +65,45 @@ export default function VendorStorefrontScreen() {
             if (query.hasNextPage && !query.isFetchingNextPage) query.fetchNextPage();
           }}
           ListHeaderComponent={
-            <View style={styles.identity}>
+            <View style={[styles.identity, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
               <View style={styles.logoWrap}>
                 {vendor.logoUrl ? (
                   <Image source={{ uri: vendor.logoUrl }} style={styles.logo} contentFit="cover" />
                 ) : (
-                  <View style={[styles.logo, styles.logoFallback]}>
-                    <Text variant="h1" tone="onLight">
+                  <View style={[styles.logo, styles.logoFallback, { backgroundColor: colors.surfaceSubtle }]}>
+                    <Text variant="screenTitle" tone="primary">
                       {vendor.companyName.charAt(0).toUpperCase()}
                     </Text>
                   </View>
                 )}
               </View>
-              <Text variant="h1" tone="onLight">
+              <Text variant="screenTitle" tone="primary" numberOfLines={2} style={styles.center}>
                 {vendor.companyName}
               </Text>
               <View style={styles.badgeRow}>
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="shield-checkmark" size={13} color={Color.goldStrong} />
-                  <Text variant="caption" tone="goldOnLight">
+                <View style={[styles.verifiedBadge, { backgroundColor: colors.goldSurface }]}>
+                  <Ionicons name="shield-checkmark" size={13} color={colors.goldStrong} />
+                  <Text variant="caption" tone="gold">
                     APPROVED VENDOR
                   </Text>
                 </View>
                 {formatSellerType(vendor.sellerType) && (
-                  <Text variant="small" tone="onLightMuted">
+                  <Text variant="small" tone="secondary" numberOfLines={1}>
                     {formatSellerType(vendor.sellerType)}
                   </Text>
                 )}
               </View>
               {locationLine ? (
-                <Text variant="small" tone="onLightMuted" style={styles.location}>
+                <Text variant="small" tone="secondary" numberOfLines={2} style={styles.location}>
                   <Ionicons name="location-outline" size={13} /> {locationLine}
                 </Text>
               ) : null}
               {vendor.description && (
-                <Text variant="body" tone="onLightMuted" style={styles.description}>
+                <Text variant="body" tone="secondary" style={styles.description}>
                   {vendor.description}
                 </Text>
               )}
-              <Text variant="h2" tone="onLight" style={styles.listingsTitle}>
+              <Text variant="sectionHeading" tone="primary" style={styles.listingsTitle}>
                 Products
               </Text>
               {listings.length === 0 && !query.isFetchingNextPage && (
@@ -112,7 +114,7 @@ export default function VendorStorefrontScreen() {
           renderItem={({ item }) => (
             <ProductCard listing={item} onPress={() => router.push({ pathname: "/listing/[id]", params: { id: item.id } })} />
           )}
-          ListFooterComponent={query.isFetchingNextPage ? <ActivityIndicator style={styles.footerLoader} color={Color.pink} /> : null}
+          ListFooterComponent={query.isFetchingNextPage ? <ActivityIndicator style={styles.footerLoader} color={colors.pink} /> : null}
         />
       )}
     </SafeAreaView>
@@ -120,28 +122,29 @@ export default function VendorStorefrontScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: Color.commerce.bg },
+  flex: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  backButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  headerSpacer: { width: TouchTarget },
   headerTitle: { flex: 1, textAlign: "center" },
   loadingBlock: { padding: Spacing.md, alignItems: "center" },
   gap: { marginTop: Spacing.sm },
-  identity: { alignItems: "center", paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
+  identity: { alignItems: "center", paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.md, borderBottomWidth: StyleSheet.hairlineWidth },
+  center: { textAlign: "center" },
   logoWrap: { marginBottom: Spacing.sm },
   logo: { width: 84, height: 84, borderRadius: 42 },
-  logoFallback: { backgroundColor: Color.commerce.surfaceSubtle, alignItems: "center", justifyContent: "center" },
-  badgeRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, marginTop: Spacing.xs },
+  logoFallback: { alignItems: "center", justifyContent: "center" },
+  badgeRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: Spacing.sm, marginTop: Spacing.xs },
   verifiedBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "#F4EEE0",
     paddingHorizontal: Spacing.xs,
     paddingVertical: 3,
     borderRadius: Radius.sm,
@@ -149,7 +152,7 @@ const styles = StyleSheet.create({
   location: { marginTop: Spacing.xs },
   description: { textAlign: "center", marginTop: Spacing.sm, lineHeight: 21 },
   listingsTitle: { alignSelf: "flex-start", marginTop: Spacing.lg, marginBottom: Spacing.xs },
-  grid: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xxl, gap: Spacing.sm },
+  grid: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.xxl, gap: Spacing.sm },
   column: { gap: Spacing.sm },
   footerLoader: { marginVertical: Spacing.md },
 });

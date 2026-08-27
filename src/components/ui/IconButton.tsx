@@ -1,20 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet } from "react-native";
-import { Color, IconSize, TouchTarget } from "@/constants/theme";
+import { IconSize, TouchTarget } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 
 type IconButtonProps = {
   name: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
-  tone?: "onDark" | "onLight";
   size?: number;
   badge?: boolean;
   accessibilityLabel: string;
 };
 
 /** Circular icon-only touch target (header actions, search field icons) — always meets the 44pt minimum regardless of the visual icon size. */
-export function IconButton({ name, onPress, tone = "onLight", size = IconSize.lg, badge = false, accessibilityLabel }: IconButtonProps) {
-  const iconColor = tone === "onDark" ? Color.brand.textPrimary : Color.commerce.textPrimary;
-  const bg = tone === "onDark" ? "rgba(255,255,255,0.08)" : Color.commerce.surfaceSubtle;
+export function IconButton({ name, onPress, size = IconSize.lg, badge = false, accessibilityLabel }: IconButtonProps) {
+  const { colors } = useAppTheme();
 
   return (
     <Pressable
@@ -22,10 +21,10 @@ export function IconButton({ name, onPress, tone = "onLight", size = IconSize.lg
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       hitSlop={8}
-      style={({ pressed }) => [styles.base, { backgroundColor: bg }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.base, { backgroundColor: colors.surfaceSubtle }, pressed && styles.pressed]}
     >
-      <Ionicons name={name} size={size} color={iconColor} />
-      {badge && <Pressable pointerEvents="none" style={styles.badge} />}
+      <Ionicons name={name} size={size} color={colors.textPrimary} />
+      {badge && <Pressable pointerEvents="none" style={[styles.badge, { backgroundColor: colors.pink }]} />}
     </Pressable>
   );
 }
@@ -46,6 +45,5 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Color.pink,
   },
 });

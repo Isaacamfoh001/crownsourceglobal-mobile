@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dimensions, FlatList, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
-import { Color } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
 import { Text } from "./Text";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -13,12 +13,13 @@ type ImageGalleryProps = {
 
 /** Native swipe-paged gallery for Product Detail — no carousel dependency, just a paged FlatList + dot indicator. */
 export function ImageGallery({ images, height = SCREEN_WIDTH }: ImageGalleryProps) {
+  const { colors } = useAppTheme();
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (images.length === 0) {
     return (
-      <View style={[styles.fallback, { height }]}>
-        <Text variant="body" tone="onLightFaint">
+      <View style={[styles.fallback, { height, backgroundColor: colors.surfaceSubtle }]}>
+        <Text variant="body" tone="muted">
           No image available
         </Text>
       </View>
@@ -44,7 +45,7 @@ export function ImageGallery({ images, height = SCREEN_WIDTH }: ImageGalleryProp
       {images.length > 1 && (
         <View style={styles.dots}>
           {images.map((_, index) => (
-            <View key={index} style={[styles.dot, index === activeIndex && styles.dotActive]} />
+            <View key={index} style={[styles.dot, index === activeIndex && [styles.dotActive, { backgroundColor: colors.textInverse }]]} />
           ))}
         </View>
       )}
@@ -53,8 +54,8 @@ export function ImageGallery({ images, height = SCREEN_WIDTH }: ImageGalleryProp
 }
 
 const styles = StyleSheet.create({
-  fallback: { backgroundColor: Color.commerce.surfaceSubtle, alignItems: "center", justifyContent: "center" },
+  fallback: { alignItems: "center", justifyContent: "center" },
   dots: { position: "absolute", bottom: 12, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.5)" },
-  dotActive: { backgroundColor: Color.inverseText, width: 18 },
+  dotActive: { width: 18 },
 });

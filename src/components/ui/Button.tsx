@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, type ViewStyle } from "react-native";
-import { Color, Radius, Spacing, TouchTarget } from "@/constants/theme";
-import { Text } from "./Text";
+import { Radius, Spacing, TouchTarget } from "@/constants/theme";
+import { useAppTheme } from "@/hooks/useAppTheme";
+import { Text, type TextTone } from "./Text";
 
-export type ButtonVariant = "pink" | "darkOutline" | "lightOutline" | "goldOutline" | "ghostOnDark" | "ghostOnLight";
+export type ButtonVariant = "pink" | "outline" | "ghost" | "goldOutline";
 
 type ButtonProps = {
   label: string;
@@ -17,29 +18,16 @@ type ButtonProps = {
   style?: ViewStyle;
 };
 
-const VARIANT_STYLE: Record<ButtonVariant, { bg: string; border?: string; textTone: Parameters<typeof Text>[0]["tone"] }> = {
-  pink: { bg: Color.pink, textTone: "inverse" },
-  darkOutline: { bg: "transparent", border: "rgba(255,255,255,0.35)", textTone: "onDark" },
-  lightOutline: { bg: "transparent", border: Color.commerce.border, textTone: "onLight" },
-  goldOutline: { bg: "transparent", border: Color.gold, textTone: "goldOnLight" },
-  ghostOnDark: { bg: "rgba(255,255,255,0.08)", textTone: "onDark" },
-  ghostOnLight: { bg: Color.commerce.surfaceSubtle, textTone: "onLight" },
-};
-
 /** The one tappable-button primitive. Pink = primary interaction everywhere (brand rule: gold never doubles as a CTA fill). */
-export function Button({
-  label,
-  onPress,
-  variant = "pink",
-  disabled = false,
-  loading = false,
-  fullWidth = false,
-  icon,
-  accessibilityHint,
-  style,
-}: ButtonProps) {
-  const v = VARIANT_STYLE[variant];
+export function Button({ label, onPress, variant = "pink", disabled = false, loading = false, fullWidth = false, icon, accessibilityHint, style }: ButtonProps) {
+  const { colors } = useAppTheme();
   const isPressableDisabled = disabled || loading;
+
+  const restBg = variant === "pink" ? colors.pink : "transparent";
+  const pressedBg = variant === "pink" ? colors.pinkPressed : variant === "ghost" ? colors.surfaceSubtle : "transparent";
+  const border = variant === "outline" ? colors.border : variant === "goldOutline" ? colors.gold : undefined;
+  const textTone: TextTone = variant === "pink" ? "onAccent" : variant === "goldOutline" ? "gold" : "primary";
+  const spinnerColor = variant === "pink" ? colors.textOnAccent : colors.pink;
 
   return (
     <Pressable
@@ -50,19 +38,23 @@ export function Button({
       accessibilityHint={accessibilityHint}
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: v.bg, borderColor: v.border, borderWidth: v.border ? 1 : 0 },
+        {
+          backgroundColor: pressed && !isPressableDisabled ? pressedBg : variant === "ghost" ? colors.surfaceSubtle : restBg,
+          borderColor: border,
+          borderWidth: border ? 1 : 0,
+        },
         fullWidth && styles.fullWidth,
         isPressableDisabled && styles.disabled,
-        pressed && !isPressableDisabled && styles.pressed,
+        pressed && !isPressableDisabled && styles.pressedScale,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={v.textTone === "inverse" ? Color.inverseText : Color.pink} />
+        <ActivityIndicator color={spinnerColor} />
       ) : (
         <>
           {icon}
-          <Text variant="bodyMedium" tone={v.textTone}>
+          <Text variant="bodyMedium" tone={textTone}>
             {label}
           </Text>
         </>
@@ -83,5 +75,5 @@ const styles = StyleSheet.create({
   },
   fullWidth: { alignSelf: "stretch" },
   disabled: { opacity: 0.45 },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  pressedScale: { transform: [{ scale: 0.98 }] },
 });
