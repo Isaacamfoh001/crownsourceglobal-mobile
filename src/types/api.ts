@@ -114,3 +114,28 @@ export type VendorStorefrontResponseDTO = {
 export type CategoriesResponseDTO = {
   categories: CategoryWithChildrenDTO[];
 };
+
+export type VendorMembershipDTO = {
+  vendorId: string;
+  role: string;
+  companyName: string;
+  verificationStatus: string;
+};
+
+export type VendorApplicationStatus = "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+
+/** Mirrors ../crownsourceglobal/app/api/v1/me/route.ts exactly — see src/types/api.ts's file header. */
+export type MeResponseDTO = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+  };
+  customer: { id: string } | null;
+  vendor: {
+    available: boolean;
+    memberships: VendorMembershipDTO[];
+  };
+  vendorApplication: { id: string; status: VendorApplicationStatus } | null;
+};

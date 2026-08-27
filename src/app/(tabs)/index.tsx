@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
 import { IconSize, Palette, Radius, Spacing, TouchTarget, type ThemeColors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useAuth } from "@/hooks/useAuth";
 import { useHome } from "@/features/home/useHome";
 import { getTimeOfDayGreeting } from "@/lib/greeting";
 import { friendlyErrorMessage } from "@/lib/api/errors";
@@ -63,11 +64,11 @@ export default function HomeScreen() {
   const { width: windowWidth } = useWindowDimensions();
   const logoWidth = Math.min(Math.max(windowWidth * LOGO_WIDTH_SCREEN_FACTOR, LOGO_WIDTH_MIN), LOGO_WIDTH_MAX);
 
-  // No authenticated-mobile user data is wired into Home yet (no
-  // `/api/v1/me` call in this app — see src/types/api.ts). Never fabricate
-  // a name; render the time-of-day greeting alone until that milestone
-  // plugs a real first name in here.
-  const firstName: string | undefined = undefined;
+  // Real first name once signed in (M20.2 §15, via GET /api/v1/me — see
+  // useAuth()); undefined while signed out or before /me resolves, which
+  // correctly falls back to the greeting alone below. Never fabricated.
+  const { me } = useAuth();
+  const firstName = me?.user.name.trim().split(/\s+/)[0];
   const greeting = getTimeOfDayGreeting();
 
   const goToShop = useCallback((categorySlug?: string) => {

@@ -1,4 +1,5 @@
 import { ENV } from "../env";
+import { authClient, signOut } from "../auth/client";
 import { ApiError, type ApiErrorCode } from "./errors";
 
 /**
@@ -12,8 +13,6 @@ type QueryValue = string | number | boolean | undefined | null;
 
 type RequestOptions = {
   query?: Record<string, QueryValue>;
-  /** Bearer token for a future authenticated call — unused by any M19.0 screen, wired for later milestones. */
-  token?: string | null;
   signal?: AbortSignal;
 };
 
@@ -35,13 +34,17 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = buildUrl(path, options.query);
+  // `getCookie()` reads the session cookie @better-auth/expo already
+  // persisted in SecureStore (see ../auth/client.ts) — empty string when
+  // signed out, which is simply omitted below.
+  const cookie = authClient.getCookie();
 
   let response: Response;
   try {
     response = await fetch(url, {
       headers: {
         Accept: "application/json",
-        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        ...(cookie ? { Cookie: cookie } : {}),
       },
       signal: options.signal,
     });
@@ -61,11 +64,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!response.ok) {
     const errorBody = body && "error" in body ? body.error : null;
-    throw new ApiError(
-      errorBody?.code ?? "UNKNOWN_ERROR",
-      errorBody?.message ?? "Something went wrong.",
-      response.status,
-    );
+    const code = errorBody?.code ?? "UNKNOWN_ERROR";
+    // A previously-valid session went stale server-side (expired/revoked).
+    // Drop the local copy so the app falls back to signed-out state instead
+    // of repeatedly retrying a dead session (§21) — best-effort, never
+    // blocks surfacing the original error to the caller.
+    if (code === "UNAUTHORIZED") {
+      signOut().catch(() => {});
+    }
+    throw new ApiError(code, errorBody?.message ?? "Something went wrong.", response.status);
   }
 
   if (!body || !("data" in body)) {

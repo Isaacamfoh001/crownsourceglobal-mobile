@@ -1,26 +1,74 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
+import { router } from "expo-router";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/StateViews";
 import { AppearanceSetting } from "@/components/ui/AppearanceSetting";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useAuth } from "@/hooks/useAuth";
+import { friendlyErrorMessage } from "@/lib/api/errors";
+import type { MeResponseDTO } from "@/types/api";
 
-const UPCOMING: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { icon: "receipt-outline", label: "Orders" },
-  { icon: "earth-outline", label: "Sourcing requests" },
-  { icon: "heart-outline", label: "Saved products" },
-  { icon: "chatbubble-ellipses-outline", label: "Messages" },
+const SIGNED_OUT_BENEFITS: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { icon: "receipt-outline", label: "Manage orders" },
+  { icon: "earth-outline", label: "Track sourcing requests" },
+  { icon: "heart-outline", label: "Save products for later" },
+  { icon: "storefront-outline", label: "Sell your own products" },
 ];
 
 /**
- * Signed-out Account shell (MOBILE_V1_PLAN.md §18): the route/tab exists
- * for navigation completeness, but native sign-in isn't built until
- * @better-auth/expo is validated in a later milestone — so this
- * deliberately doesn't offer a "Sign in" button that would do nothing.
- * Appearance is real, local-only, and works today regardless of sign-in.
+ * Account screen (M20.2 §14) — real signed-out and signed-in states backed
+ * by @better-auth/expo's session and GET /api/v1/me. No fabricated
+ * data: Vendor/order/sourcing sections only render when the real /me
+ * response actually contains them.
  */
 export default function AccountScreen() {
+  const { status, me, isMeLoading, meError, refetchMe, signOut } = useAuth();
+
+  if (status === "LOADING") {
+    return (
+      <Screen>
+        <View style={styles.loadingContainer}>
+          <Skeleton height={72} width={72} radius={36} />
+          <Skeleton height={20} width={160} radius={Radius.sm} />
+          <Skeleton height={16} width={220} radius={Radius.sm} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (status === "SIGNED_OUT") {
+    return <SignedOutAccount />;
+  }
+
+  if (isMeLoading) {
+    return (
+      <Screen>
+        <View style={styles.loadingContainer}>
+          <Skeleton height={72} width={72} radius={36} />
+          <Skeleton height={20} width={160} radius={Radius.sm} />
+          <Skeleton height={16} width={220} radius={Radius.sm} />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (meError || !me) {
+    return (
+      <Screen>
+        <ErrorState title="Couldn't load your account" message={friendlyErrorMessage(meError)} onRetry={refetchMe} />
+      </Screen>
+    );
+  }
+
+  return <SignedInAccount me={me} onSignOut={signOut} />;
+}
+
+function SignedOutAccount() {
   const { colors } = useAppTheme();
 
   return (
@@ -37,10 +85,9 @@ export default function AccountScreen() {
           Sign in to manage orders, sourcing requests, saved items and your CrownSourceGlobal profile.
         </Text>
 
-        <View style={[styles.comingSoonBadge, { borderColor: colors.gold }]}>
-          <Text variant="caption" tone="gold">
-            NATIVE SIGN-IN — COMING SOON
-          </Text>
+        <View style={styles.authActions}>
+          <Button label="Sign in" onPress={() => router.push("/(auth)/sign-in")} fullWidth />
+          <Button label="Create account" variant="outline" onPress={() => router.push("/(auth)/sign-up")} fullWidth />
         </View>
 
         <View style={styles.section}>
@@ -48,7 +95,7 @@ export default function AccountScreen() {
         </View>
 
         <View style={styles.list}>
-          {UPCOMING.map((item) => (
+          {SIGNED_OUT_BENEFITS.map((item) => (
             <View key={item.label} style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={[styles.listIcon, { backgroundColor: colors.surfaceSubtle }]}>
                 <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
@@ -64,8 +111,101 @@ export default function AccountScreen() {
   );
 }
 
+function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () => Promise<void> }) {
+  const { colors } = useAppTheme();
+  const initial = me.user.name.trim().charAt(0).toUpperCase() || "?";
+
+  return (
+    <Screen>
+      <View style={styles.container}>
+        <View style={[styles.iconCircle, { backgroundColor: colors.textPrimary }]}>
+          <Text variant="screenTitle" style={{ color: colors.surface }}>
+            {initial}
+          </Text>
+        </View>
+
+        <Text variant="screenTitle" tone="primary" style={styles.center}>
+          {me.user.name}
+        </Text>
+        <Text variant="body" tone="secondary" style={styles.center}>
+          {me.user.email}
+        </Text>
+
+        {!me.user.emailVerified && (
+          <View style={[styles.badge, { borderColor: colors.warning }]}>
+            <Text variant="caption" tone="warning">
+              EMAIL NOT VERIFIED
+            </Text>
+          </View>
+        )}
+
+        {me.vendor.available && (
+          <View style={styles.section}>
+            <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
+              YOUR STORE
+            </Text>
+            {me.vendor.memberships.map((membership) => (
+              <View key={membership.vendorId} style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
+                  <Ionicons name="storefront-outline" size={18} color={colors.goldStrong} />
+                </View>
+                <View style={styles.flex}>
+                  <Text variant="bodyMedium" tone="primary">
+                    {membership.companyName}
+                  </Text>
+                  <Text variant="small" tone="secondary">
+                    {membership.verificationStatus}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {!me.vendor.available && me.vendorApplication && (
+          <View style={styles.section}>
+            <View style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
+                <Ionicons name="time-outline" size={18} color={colors.goldStrong} />
+              </View>
+              <Text variant="body" tone="secondary">
+                Vendor application {me.vendorApplication.status.toLowerCase().replace(/_/g, " ")}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <AppearanceSetting />
+        </View>
+
+        <View style={styles.list}>
+          {[
+            { icon: "receipt-outline" as const, label: "Orders" },
+            { icon: "earth-outline" as const, label: "Sourcing requests" },
+            { icon: "heart-outline" as const, label: "Saved products" },
+            { icon: "chatbubble-ellipses-outline" as const, label: "Messages" },
+          ].map((item) => (
+            <View key={item.label} style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.listIcon, { backgroundColor: colors.surfaceSubtle }]}>
+                <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
+              </View>
+              <Text variant="body" tone="secondary">
+                {item.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <Button label="Sign out" variant="outline" onPress={onSignOut} fullWidth style={styles.signOut} />
+      </View>
+    </Screen>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.md },
+  loadingContainer: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.md },
   iconCircle: {
     width: 72,
     height: 72,
@@ -76,13 +216,15 @@ const styles = StyleSheet.create({
   },
   center: { textAlign: "center" },
   body: { marginBottom: Spacing.xs },
-  comingSoonBadge: {
+  authActions: { alignSelf: "stretch", gap: Spacing.sm, marginTop: Spacing.xs },
+  badge: {
     borderWidth: 1,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
   },
   section: { alignSelf: "stretch", marginTop: Spacing.lg },
+  sectionLabel: { marginBottom: Spacing.xs, letterSpacing: 0.5 },
   list: { alignSelf: "stretch", marginTop: Spacing.lg, gap: Spacing.sm },
   listRow: {
     flexDirection: "row",
@@ -99,4 +241,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  flex: { flex: 1 },
+  signOut: { marginTop: Spacing.lg },
 });
