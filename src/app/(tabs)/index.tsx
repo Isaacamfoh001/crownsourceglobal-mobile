@@ -2,40 +2,57 @@ import { useCallback } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { AppLogo } from "@/components/ui/AppLogo";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { SectionHeader } from "@/components/ui/SectionHeader";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { CategoryTile } from "@/components/ui/CategoryTile";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
-import { IconSize, Palette, Radius, Spacing } from "@/constants/theme";
+import { IconSize, Palette, Radius, Spacing, TouchTarget, type ThemeColors } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useHome } from "@/features/home/useHome";
+import { getTimeOfDayGreeting } from "@/lib/greeting";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 
-type QuickAction = {
+type CapabilityItem = {
   key: string;
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
 };
 
+const LOGO_WIDTH = 148;
+
 /**
- * Home's top hero is a deliberate, permanently-dark "brand plate" — it
- * always uses Palette.dark directly, not useAppTheme()'s resolved colors —
- * because the official logo asset (see AppLogo.tsx) has a solid black
- * background baked in and needs a dark surface to sit on regardless of
- * which app theme is active. Everything below the hero uses the resolved
- * theme so light-mode Home is its own art-directed light page (warm pearl,
- * charcoal text, pink CTAs, gold accents), not "dark Home with the colors
- * swapped" — see M19.2 report §L.
+ * Home's top brand band is a deliberate, permanently-dark "brand plate" —
+ * it always uses Palette.dark directly, not useAppTheme()'s resolved
+ * colors — because the official logo asset (see AppLogo.tsx) has a solid
+ * black background baked in and needs a dark surface to sit on regardless
+ * of which app theme is active. Everything below the band uses the
+ * resolved theme so light-mode Home is its own art-directed light page
+ * (warm pearl, charcoal text, pink CTAs, gold accents), not "dark Home
+ * with the colors swapped" — see M19.2 report §L.
+ *
+ * M19.2.1 extends that band to cover header → greeting → search → hero →
+ * capability grid as one continuous dark surface (matching the client
+ * reference's center Home mockup), rather than stopping after the search
+ * field the way M19.2 did.
  */
 export default function HomeScreen() {
-  const { colors, scheme } = useAppTheme();
+  const { scheme } = useAppTheme();
   const heroColors = Palette.dark;
   const { data, isPending, isError, error, refetch, isRefetching } = useHome();
+
+  // No authenticated-mobile user data is wired into Home yet (no
+  // `/api/v1/me` call in this app — see src/types/api.ts). Never fabricate
+  // a name; render the time-of-day greeting alone until that milestone
+  // plugs a real first name in here.
+  const firstName: string | undefined = undefined;
+  const greeting = getTimeOfDayGreeting();
 
   const goToShop = useCallback((categorySlug?: string) => {
     router.push({ pathname: "/(tabs)/shop", params: categorySlug ? { category: categorySlug } : {} });
@@ -45,56 +62,83 @@ export default function HomeScreen() {
     router.push({ pathname: "/listing/[id]", params: { id } });
   }, []);
 
-  const quickActions: QuickAction[] = [
-    { key: "shop", label: "Shop", icon: "bag-handle", onPress: () => goToShop() },
-    { key: "explore", label: "Explore", icon: "compass", onPress: () => router.push("/(tabs)/explore") },
-    { key: "source", label: "Source", icon: "camera", onPress: () => router.push("/(tabs)/source") },
+  const capabilities: CapabilityItem[] = [
+    { key: "marketplace", label: "Marketplace", icon: "storefront-outline", onPress: () => goToShop() },
+    { key: "explore", label: "Explore", icon: "compass-outline", onPress: () => router.push("/(tabs)/explore") },
+    { key: "source", label: "Source", icon: "camera-outline", onPress: () => router.push("/(tabs)/source") },
+    { key: "account", label: "Account", icon: "person-circle-outline", onPress: () => router.push("/(tabs)/account") },
   ];
 
   return (
     <Screen onRefresh={refetch} refreshing={isRefetching} edges={["top"]} contentStyle={styles.screenContent}>
       <View style={[styles.hero, { backgroundColor: heroColors.bg }, scheme === "light" && styles.heroLightSeam]}>
-        <View style={styles.logoRow}>
-          <AppLogo width={172} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Search products and vendors"
-            hitSlop={8}
-            onPress={() => goToShop()}
-            style={styles.searchIcon}
+        <View style={styles.headerRow}>
+          <View style={styles.headerSideSpacer} />
+          <LinearGradient
+            colors={[heroColors.bg, "#000000", "#000000", heroColors.bg]}
+            locations={[0, 0.35, 0.65, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoVignette}
           >
-            <Ionicons name="search" size={IconSize.md} color={heroColors.textPrimary} />
-          </Pressable>
+            <AppLogo width={LOGO_WIDTH} />
+          </LinearGradient>
+          <NotificationBell colors={heroColors} />
+        </View>
+
+        <View style={styles.greetingBlock}>
+          <Text variant="screenTitle" style={{ color: heroColors.textPrimary }}>
+            {greeting}
+            {firstName ? `, ${firstName}` : ""} 👋
+          </Text>
+          <Text variant="body" style={{ color: heroColors.textSecondary, marginTop: 2 }}>
+            What would you like to do today?
+          </Text>
         </View>
 
         <Pressable
           onPress={() => goToShop()}
-          style={[styles.searchField, { backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.14)" }]}
+          style={[styles.searchPill, { backgroundColor: "rgba(255,255,255,0.07)", borderColor: "rgba(255,255,255,0.14)" }]}
           accessibilityRole="button"
           accessibilityLabel="Search products, vendors and categories"
         >
-          <Ionicons name="search" size={IconSize.sm} color={heroColors.textSecondary} />
-          <Text variant="body" tone="secondary" numberOfLines={1} style={{ color: heroColors.textSecondary }}>
+          <Ionicons name="search" size={IconSize.sm} color={heroColors.textMuted} />
+          <Text variant="body" numberOfLines={1} style={[styles.searchPlaceholder, { color: heroColors.textMuted }]}>
             Search products, vendors&hellip;
           </Text>
+          <View style={[styles.searchButton, { backgroundColor: heroColors.pink }]}>
+            <Ionicons name="search" size={IconSize.sm} color={heroColors.textOnAccent} />
+          </View>
         </Pressable>
 
-        <View style={styles.quickActionRow}>
-          {quickActions.map((action) => (
-            <Pressable
-              key={action.key}
-              onPress={action.onPress}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-              style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}
-            >
-              <View style={[styles.quickActionIcon, { backgroundColor: heroColors.goldStrong }]}>
-                <Ionicons name={action.icon} size={IconSize.md} color={heroColors.bg} />
-              </View>
-              <Text variant="smallMedium" style={{ color: heroColors.textPrimary }}>
-                {action.label}
-              </Text>
-            </Pressable>
+        <LinearGradient
+          colors={[heroColors.elevated, heroColors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroCard, { borderColor: heroColors.borderPremium }]}
+        >
+          <Text variant="sectionHeading" style={{ color: heroColors.textPrimary }}>
+            Everything Beauty. One Platform.
+          </Text>
+          <Text variant="body" style={{ color: heroColors.textSecondary, marginTop: Spacing.xxs }}>
+            Discover products, professionals and inspiration — or source exactly what you need.
+          </Text>
+          <Pressable
+            onPress={() => goToShop()}
+            style={({ pressed }) => [styles.heroCta, { backgroundColor: heroColors.pink }, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Explore Now"
+          >
+            <Text variant="smallMedium" style={{ color: heroColors.textOnAccent }}>
+              Explore Now
+            </Text>
+            <Ionicons name="arrow-forward" size={IconSize.sm} color={heroColors.textOnAccent} />
+          </Pressable>
+        </LinearGradient>
+
+        <View style={styles.capabilityGrid}>
+          {capabilities.map((item) => (
+            <CapabilityCard key={item.key} item={item} colors={heroColors} />
           ))}
         </View>
       </View>
@@ -143,39 +187,27 @@ export default function HomeScreen() {
               </ScrollView>
             )}
           </View>
-
-          <Pressable style={[styles.exploreTeaser, { backgroundColor: colors.pinkSurface }]} onPress={() => router.push("/(tabs)/explore")} accessibilityRole="button">
-            <View style={[styles.exploreTeaserIcon, { backgroundColor: colors.surface }]}>
-              <Ionicons name="sparkles" size={20} color={colors.pink} />
-            </View>
-            <View style={styles.teaserText}>
-              <Text variant="bodyMedium" tone="primary">
-                See what beauty pros are creating
-              </Text>
-              <Text variant="small" tone="secondary">
-                Browse real work from stylists, salons and MUAs on Explore.
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.pink} />
-          </Pressable>
-
-          <Pressable style={[styles.sourceCta, { backgroundColor: colors.goldSurface }]} onPress={() => router.push("/(tabs)/source")} accessibilityRole="button">
-            <View style={[styles.sourceCtaIcon, { backgroundColor: colors.gold }]}>
-              <Ionicons name="camera" size={22} color={colors.surface} />
-            </View>
-            <View style={styles.teaserText}>
-              <Text variant="bodyMedium" tone="primary">
-                Looking for something? Source from a photo.
-              </Text>
-              <Text variant="small" tone="secondary">
-                Snap or upload a picture — we&rsquo;ll find a vendor for it.
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.goldStrong} />
-          </Pressable>
         </>
       )}
     </Screen>
+  );
+}
+
+function CapabilityCard({ item, colors }: { item: CapabilityItem; colors: ThemeColors }) {
+  return (
+    <Pressable
+      onPress={item.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={item.label}
+      style={({ pressed }) => [styles.capabilityCard, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}
+    >
+      <View style={[styles.capabilityIcon, { backgroundColor: colors.goldSurface }]}>
+        <Ionicons name={item.icon} size={IconSize.md} color={colors.goldStrong} />
+      </View>
+      <Text variant="smallMedium" numberOfLines={2} style={[styles.capabilityLabel, { color: colors.textPrimary }]}>
+        {item.label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -183,66 +215,63 @@ const styles = StyleSheet.create({
   screenContent: { paddingBottom: Spacing.xxl },
   hero: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, paddingBottom: Spacing.lg },
   heroLightSeam: { borderBottomLeftRadius: Radius.xl, borderBottomRightRadius: Radius.xl },
-  logoRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  searchIcon: { padding: Spacing.xxs },
-  searchField: {
+
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerSideSpacer: { width: TouchTarget, height: TouchTarget },
+  logoVignette: { width: LOGO_WIDTH + 56, height: LOGO_WIDTH / 1.922 + 44, alignItems: "center", justifyContent: "center" },
+
+  greetingBlock: { marginTop: Spacing.sm, paddingHorizontal: Spacing.xxs },
+
+  searchPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
     marginTop: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    height: 44,
+    paddingLeft: Spacing.md,
+    paddingRight: 4,
+    height: 48,
     borderRadius: Radius.pill,
     borderWidth: 1,
   },
-  quickActionRow: { flexDirection: "row", gap: Spacing.sm, marginTop: Spacing.md },
-  quickAction: { flex: 1, alignItems: "center", gap: 6 },
-  pressed: { opacity: 0.85 },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
+  searchPlaceholder: { flex: 1 },
+  searchButton: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+
+  heroCard: {
+    marginTop: Spacing.md,
+    padding: Spacing.md,
     borderRadius: Radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
+    borderWidth: 1,
   },
+  heroCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 6,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    height: 38,
+    borderRadius: Radius.pill,
+  },
+  pressed: { opacity: 0.85 },
+
+  capabilityGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.md },
+  capabilityCard: {
+    flexBasis: "47%",
+    flexGrow: 1,
+    alignItems: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+  },
+  capabilityIcon: { width: 40, height: 40, borderRadius: Radius.pill, alignItems: "center", justifyContent: "center" },
+  capabilityLabel: { textAlign: "center" },
+
   loadingBlock: { paddingHorizontal: Spacing.md, marginTop: Spacing.lg, gap: Spacing.md },
   loadingRow: { flexDirection: "row", gap: Spacing.sm },
   section: { marginTop: Spacing.lg },
   chipRow: { paddingHorizontal: Spacing.md, gap: Spacing.xs },
   productRow: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
   emptyText: { paddingHorizontal: Spacing.md },
-  exploreTeaser: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radius.md,
-  },
-  exploreTeaserIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  teaserText: { flex: 1 },
-  sourceCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-  },
-  sourceCtaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });
