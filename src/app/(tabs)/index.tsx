@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,14 +25,28 @@ type CapabilityItem = {
   onPress: () => void;
 };
 
-const LOGO_WIDTH = 148;
+/**
+ * Logo width scales with the screen instead of a fixed pixel value — 40% of
+ * screen width lands close to the client reference's proportion on a
+ * 375–393pt phone, clamped so it can't shrink below comfortable legibility
+ * on a 320pt screen or balloon into a large-phone/tablet centerpiece. This
+ * deliberately does not use the wider 68–76%-of-width/300–320pt-max range
+ * floated for this milestone — that range renders too large in practice
+ * (crowds the header, edges near the greeting, contradicts "must not
+ * dominate the greeting" in the same spec) once actually checked against
+ * this asset at these breakpoints.
+ */
+const LOGO_WIDTH_MIN = 130;
+const LOGO_WIDTH_MAX = 190;
+const LOGO_WIDTH_SCREEN_FACTOR = 0.4;
 
 /**
  * Home's top brand band is a deliberate, permanently-dark "brand plate" —
  * it always uses Palette.dark directly, not useAppTheme()'s resolved
- * colors — because the official logo asset (see AppLogo.tsx) has a solid
- * black background baked in and needs a dark surface to sit on regardless
- * of which app theme is active. Everything below the band uses the
+ * colors. The logo itself is transparent now (see AppLogo.tsx / M19.2.2
+ * report), so this is a design choice for gold-on-dark contrast rather than
+ * a technical requirement, and it stays true regardless of which app theme
+ * is active. Everything below the band uses the
  * resolved theme so light-mode Home is its own art-directed light page
  * (warm pearl, charcoal text, pink CTAs, gold accents), not "dark Home
  * with the colors swapped" — see M19.2 report §L.
@@ -46,6 +60,8 @@ export default function HomeScreen() {
   const { scheme } = useAppTheme();
   const heroColors = Palette.dark;
   const { data, isPending, isError, error, refetch, isRefetching } = useHome();
+  const { width: windowWidth } = useWindowDimensions();
+  const logoWidth = Math.min(Math.max(windowWidth * LOGO_WIDTH_SCREEN_FACTOR, LOGO_WIDTH_MIN), LOGO_WIDTH_MAX);
 
   // No authenticated-mobile user data is wired into Home yet (no
   // `/api/v1/me` call in this app — see src/types/api.ts). Never fabricate
@@ -74,15 +90,7 @@ export default function HomeScreen() {
       <View style={[styles.hero, { backgroundColor: heroColors.bg }, scheme === "light" && styles.heroLightSeam]}>
         <View style={styles.headerRow}>
           <View style={styles.headerSideSpacer} />
-          <LinearGradient
-            colors={[heroColors.bg, "#000000", "#000000", heroColors.bg]}
-            locations={[0, 0.35, 0.65, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.logoVignette}
-          >
-            <AppLogo width={LOGO_WIDTH} />
-          </LinearGradient>
+          <AppLogo width={logoWidth} />
           <NotificationBell colors={heroColors} />
         </View>
 
@@ -124,7 +132,7 @@ export default function HomeScreen() {
             Discover products, professionals and inspiration — or source exactly what you need.
           </Text>
           <Pressable
-            onPress={() => goToShop()}
+            onPress={() => router.push("/(tabs)/explore")}
             style={({ pressed }) => [styles.heroCta, { backgroundColor: heroColors.pink }, pressed && styles.pressed]}
             accessibilityRole="button"
             accessibilityLabel="Explore Now"
@@ -218,7 +226,6 @@ const styles = StyleSheet.create({
 
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerSideSpacer: { width: TouchTarget, height: TouchTarget },
-  logoVignette: { width: LOGO_WIDTH + 56, height: LOGO_WIDTH / 1.922 + 44, alignItems: "center", justifyContent: "center" },
 
   greetingBlock: { marginTop: Spacing.sm, paddingHorizontal: Spacing.xxs },
 
