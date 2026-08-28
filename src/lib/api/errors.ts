@@ -3,6 +3,7 @@ export type ApiErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "VALIDATION_ERROR"
+  | "RATE_LIMITED"
   | "INTERNAL_ERROR"
   | "NETWORK_ERROR"
   | "CONFIG_ERROR"
@@ -35,6 +36,9 @@ export function friendlyErrorMessage(error: unknown): string {
     }
     if (error.code === "UNAUTHORIZED" || error.code === "FORBIDDEN") {
       return "You need to sign in to see this.";
+    }
+    if (error.code === "RATE_LIMITED") {
+      return "Too many attempts. Please try again shortly.";
     }
     return error.message || "Something went wrong.";
   }

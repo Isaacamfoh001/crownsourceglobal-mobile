@@ -139,3 +139,45 @@ export type MeResponseDTO = {
   };
   vendorApplication: { id: string; status: VendorApplicationStatus } | null;
 };
+
+// --- Explore (M21) — mirrors lib/api/dto/explore-posts.ts exactly --------
+
+export type ExploreCategoryDTO = { id: string; name: string; slug: string };
+
+export type ExplorePostDTO = {
+  id: string;
+  caption: string;
+  images: string[];
+  category: ExploreCategoryDTO;
+  location: string | null;
+  createdAt: string;
+  publisher: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    storefrontSlug: string;
+  };
+  engagement: {
+    likedByMe: boolean;
+    savedByMe: boolean;
+    likeCount: number;
+  };
+};
+
+/** The public feed/saved-list envelope — `GET /api/v1/explore-posts` and `GET /api/v1/explore-posts/saved` — cursor-paginated, not the page-number `Page<T>` shape above (see app/api/v1/explore-posts/route.ts's doc comment for why). */
+export type ExplorePostFeedDTO = {
+  rows: ExplorePostDTO[];
+  nextCursor: string | null;
+};
+
+export type MyExplorePostDTO = {
+  id: string;
+  caption: string;
+  images: string[];
+  approvalStatus: "PENDING" | "APPROVED" | "CHANGES_REQUESTED" | "REJECTED";
+  visibility: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  hasPendingChanges: boolean;
+  changesRequestedReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};

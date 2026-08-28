@@ -7,6 +7,10 @@ import { ApiError, type ApiErrorCode } from "./errors";
  * knows the M18 response envelope, not any CrownSourceGlobal business rule.
  * See docs/mobile/MOBILE_V1_PLAN.md §10-11 (this repo does not duplicate
  * that document; see ../crownsourceglobal for the source).
+ *
+ * M21 extends this from GET-only to also support JSON/multipart mutations
+ * (Explore like/save/archive/create/edit) — same envelope/auth/error
+ * handling, just a configurable method/body.
  */
 
 type QueryValue = string | number | boolean | undefined | null;
@@ -14,6 +18,11 @@ type QueryValue = string | number | boolean | undefined | null;
 type RequestOptions = {
   query?: Record<string, QueryValue>;
   signal?: AbortSignal;
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  /** JSON body — sent as `application/json`. Mutually exclusive with `form`. */
+  body?: unknown;
+  /** `multipart/form-data` body (image uploads) — mutually exclusive with `body`. */
+  form?: FormData;
 };
 
 type ApiEnvelope<T> = { data: T } | { error: { code: ApiErrorCode; message: string } };
@@ -38,16 +47,23 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   // persisted in SecureStore (see ../auth/client.ts) — empty string when
   // signed out, which is simply omitted below.
   const cookie = authClient.getCookie();
+  const method = options.method ?? "GET";
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...(cookie ? { Cookie: cookie } : {}),
+  };
+  let requestBody: BodyInit | undefined;
+  if (options.form) {
+    requestBody = options.form; // fetch sets the multipart boundary Content-Type itself
+  } else if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    requestBody = JSON.stringify(options.body);
+  }
 
   let response: Response;
   try {
-    response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        ...(cookie ? { Cookie: cookie } : {}),
-      },
-      signal: options.signal,
-    });
+    response = await fetch(url, { method, headers, body: requestBody, signal: options.signal });
   } catch {
     throw new ApiError(
       "NETWORK_ERROR",
@@ -83,5 +99,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const apiClient = {
-  get: <T>(path: string, options?: RequestOptions) => request<T>(path, options),
+  get: <T>(path: string, options?: Omit<RequestOptions, "method" | "body" | "form">) => request<T>(path, options),
+  post: <T>(path: string, options?: Omit<RequestOptions, "method">) => request<T>(path, { ...options, method: "POST" }),
+  patch: <T>(path: string, options?: Omit<RequestOptions, "method">) => request<T>(path, { ...options, method: "PATCH" }),
+  delete: <T>(path: string, options?: Omit<RequestOptions, "method" | "body" | "form">) =>
+    request<T>(path, { ...options, method: "DELETE" }),
 };

@@ -1,54 +1,118 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Share, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { Button } from "@/components/ui/Button";
 import { ExplorePostCard } from "@/components/ui/ExplorePostCard";
-import { Radius, Spacing } from "@/constants/theme";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ErrorState } from "@/components/ui/StateViews";
+import { IconSize, Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
-import { DEV_EXPLORE_POST_FIXTURES, DEV_TINT_STYLE } from "@/features/explore/devPostFixtures";
+import { useAuth } from "@/hooks/useAuth";
+import { useExploreFeed } from "@/features/explore/useExploreFeed";
+import { useToggleExploreLike, useToggleExploreSave } from "@/features/explore/useExploreEngagement";
+import { promptSignInRequired } from "@/lib/auth/requireAuthPrompt";
+import { friendlyErrorMessage } from "@/lib/api/errors";
+import { isEligibleExploreProvider } from "@/features/explore/eligibility";
+import type { ExplorePostDTO } from "@/types/api";
 
 /**
- * Explore (M19.2 §8-12): a single-column, Instagram/Pinterest-style visual
- * discovery feed of beauty professionals' work — ONE dominant portrait post
- * per row, not a product grid (that's Shop's job). There is no live
- * Explore/portfolio-post backend yet, so this screen renders clearly-
- * labelled development fixtures (see devPostFixtures.ts). Like/save are
- * local component state only — see the toggle handlers below and the
- * fixtures file header for exactly what is and isn't persisted.
+ * Explore (M21) — a real, backend-backed beauty-work discovery feed
+ * replacing M19's development fixtures. Single-column, image-dominant,
+ * Instagram-inspired (AGENTS.md §2/§9, M19.2 §8-12) — see
+ * ExplorePostCard.tsx for the per-post visual language, which is
+ * unchanged from M19.2's approved design beyond adding real
+ * multi-image carousel support.
  */
 export default function ExploreScreen() {
   const { colors } = useAppTheme();
-  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const { status, me } = useAuth();
+  const isSignedIn = status === "SIGNED_IN";
+  const canPost = isEligibleExploreProvider(me);
 
-  const toggleLike = (id: string) => {
-    setLikedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-  const toggleSave = (id: string) => {
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const feedQuery = useExploreFeed();
+  const likeMutation = useToggleExploreLike();
+  const saveMutation = useToggleExploreSave();
+
+  const rows = useMemo<ExplorePostDTO[]>(() => feedQuery.data?.pages.flatMap((page) => page.rows) ?? [], [feedQuery.data]);
+
+  const onToggleLike = (post: ExplorePostDTO) => {
+    if (!isSignedIn) {
+      promptSignInRequired("like posts", "/(tabs)/explore");
+      return;
+    }
+    likeMutation.mutate({ postId: post.id, liked: post.engagement.likedByMe });
   };
 
-  return (
-    <Screen contentStyle={styles.content}>
+  const onToggleSave = (post: ExplorePostDTO) => {
+    if (!isSignedIn) {
+      promptSignInRequired("save posts", "/(tabs)/explore");
+      return;
+    }
+    saveMutation.mutate({ postId: post.id, saved: post.engagement.savedByMe });
+  };
+
+  const onShare = async (post: ExplorePostDTO) => {
+    try {
+      // No public web Explore detail route exists yet (M21 §11) — sharing
+      // caption/provider context is the honest, non-broken option for V1;
+      // a deep/universal link is a documented future improvement.
+      await Share.share({ message: `"${post.caption}" by ${post.publisher.name} — via CrownSourceGlobal Explore` });
+    } catch {
+      // User cancelled the share sheet — nothing to do.
+    }
+  };
+
+  const onSourceThisLook = () => {
+    // Native sourcing creation isn't wired up yet (Source tab is a value-
+    // prop placeholder — see src/app/(tabs)/source.tsx) — navigate there
+    // rather than fake an integration. See the M21 report's "Source from
+    // this look" section for the follow-up task.
+    router.push("/(tabs)/source");
+  };
+
+  const header = (
+    <View>
       <View style={styles.header}>
-        <Text variant="screenTitle" tone="primary">
-          Explore
-        </Text>
-        <Text variant="body" tone="secondary" style={styles.subtitle}>
-          Real work from stylists, salons and MUAs — hairstyles, braids, makeup, lashes and nails.
-        </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerText}>
+            <Text variant="screenTitle" tone="primary">
+              Explore
+            </Text>
+            <Text variant="body" tone="secondary" style={styles.subtitle}>
+              Real work from stylists, salons and MUAs — hairstyles, braids, makeup, lashes and nails.
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => {
+                if (!isSignedIn) {
+                  promptSignInRequired("view saved posts", "/(tabs)/explore");
+                  return;
+                }
+                router.push("/explore/saved");
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Saved posts"
+              style={[styles.createButton, { backgroundColor: colors.surfaceSubtle }]}
+            >
+              <Ionicons name="bookmark-outline" size={20} color={colors.textPrimary} />
+            </Pressable>
+            {canPost ? (
+              <Pressable
+                onPress={() => router.push("/explore/create")}
+                accessibilityRole="button"
+                accessibilityLabel="Share your work"
+                style={[styles.createButton, { backgroundColor: colors.pinkSurface }]}
+              >
+                <Ionicons name="add" size={22} color={colors.pink} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       </View>
 
       <Pressable onPress={() => router.push("/(tabs)/source")} style={[styles.sourceCta, { backgroundColor: colors.pinkSurface }]} accessibilityRole="button">
@@ -58,44 +122,100 @@ export default function ExploreScreen() {
         </Text>
         <Ionicons name="chevron-forward" size={14} color={colors.pink} />
       </Pressable>
+    </View>
+  );
 
-      <View style={[styles.devBanner, { backgroundColor: colors.warningSurface }]}>
-        <Ionicons name="construct-outline" size={13} color={colors.warning} />
-        <Text variant="caption" tone="warning" style={styles.devBannerText}>
-          PREVIEW LAYOUT — SAMPLE CONTENT, NOT LIVE POSTS
-        </Text>
-      </View>
+  if (feedQuery.isPending && !feedQuery.isError) {
+    return (
+      <Screen contentStyle={styles.content}>
+        {header}
+        <View style={styles.feed}>
+          <Skeleton height={480} radius={16} />
+          <Skeleton height={480} radius={16} style={styles.skeletonGap} />
+        </View>
+      </Screen>
+    );
+  }
 
-      <View style={styles.feed}>
-        {DEV_EXPLORE_POST_FIXTURES.map((post) => {
-          const liked = likedIds.has(post.id);
-          const baseCount = post.sampleLikeCount + (liked ? 1 : 0);
-          return (
-            <ExplorePostCard
-              key={post.id}
-              title={post.title}
-              providerName={post.providerName}
-              location={post.location}
-              categoryTag={post.categoryTag}
-              placeholder={{ icon: post.placeholderIcon, bg: DEV_TINT_STYLE[post.placeholderTint].bg, fg: DEV_TINT_STYLE[post.placeholderTint].fg }}
-              liked={liked}
-              saved={savedIds.has(post.id)}
-              likeCount={baseCount}
-              onToggleLike={() => toggleLike(post.id)}
-              onToggleSave={() => toggleSave(post.id)}
-              onPress={() => {}}
-            />
-          );
-        })}
-      </View>
-    </Screen>
+  if (feedQuery.isError) {
+    return (
+      <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
+        {header}
+        <ErrorState title="Couldn't load Explore" message={friendlyErrorMessage(feedQuery.error)} onRetry={() => feedQuery.refetch()} />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
+      <FlatList
+        style={styles.flex}
+        data={rows}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={header}
+        onEndReachedThreshold={0.4}
+        onEndReached={() => {
+          if (feedQuery.hasNextPage && !feedQuery.isFetchingNextPage) feedQuery.fetchNextPage();
+        }}
+        refreshing={feedQuery.isRefetching && !feedQuery.isFetchingNextPage}
+        onRefresh={() => feedQuery.refetch()}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Ionicons name="sparkles-outline" size={IconSize.xl} color={colors.textMuted} />
+            <Text variant="sectionHeading" tone="primary" style={styles.emptyTitle}>
+              Fresh inspiration is coming
+            </Text>
+            <Text variant="body" tone="secondary" style={styles.emptyMessage}>
+              Beauty professionals&apos; latest work will appear here.
+            </Text>
+            {canPost ? (
+              <Button label="Share your work" onPress={() => router.push("/explore/create")} style={styles.emptyButton} />
+            ) : null}
+          </View>
+        }
+        renderItem={({ item }) => (
+          <ExplorePostCard
+            caption={item.caption}
+            providerName={item.publisher.name}
+            providerAvatarUrl={item.publisher.avatarUrl}
+            location={item.location}
+            categoryTag={item.category.name}
+            images={item.images}
+            liked={item.engagement.likedByMe}
+            saved={item.engagement.savedByMe}
+            likeCount={item.engagement.likeCount}
+            onToggleLike={() => onToggleLike(item)}
+            onToggleSave={() => onToggleSave(item)}
+            onShare={() => onShare(item)}
+            onSourceThisLook={onSourceThisLook}
+            onPressProvider={() => router.push({ pathname: "/vendor/[slug]", params: { slug: item.publisher.storefrontSlug } })}
+          />
+        )}
+        ListFooterComponent={feedQuery.isFetchingNextPage ? <ActivityIndicator style={styles.footerLoader} color={colors.pink} /> : null}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   content: { paddingBottom: Spacing.xxl },
+  listContent: { paddingBottom: Spacing.xxl },
   header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, gap: 3 },
+  headerRow: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.sm },
+  headerText: { flex: 1, gap: 3 },
   subtitle: { marginTop: 2 },
+  headerActions: { flexDirection: "row", gap: Spacing.xs },
+  createButton: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sourceCta: {
     flexDirection: "row",
     alignItems: "center",
@@ -107,16 +227,12 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   sourceCtaText: { flex: 1 },
-  devBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: Radius.sm,
-  },
-  devBannerText: { flex: 1 },
-  feed: { paddingHorizontal: Spacing.md, marginTop: Spacing.md, gap: Spacing.lg },
+  feed: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
+  skeletonGap: { marginTop: Spacing.lg },
+  separator: { height: Spacing.lg },
+  empty: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.xs },
+  emptyTitle: { textAlign: "center", marginTop: Spacing.xs },
+  emptyMessage: { textAlign: "center" },
+  emptyButton: { marginTop: Spacing.sm },
+  footerLoader: { marginVertical: Spacing.md },
 });

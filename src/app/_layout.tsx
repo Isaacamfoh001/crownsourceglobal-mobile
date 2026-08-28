@@ -61,6 +61,8 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="listing/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor/[slug]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="explore/create" options={{ presentation: "modal" }} />
+            <Stack.Screen name="explore/saved" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
           </Stack>
         </QueryClientProvider>
