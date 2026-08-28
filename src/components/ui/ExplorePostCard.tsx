@@ -1,17 +1,16 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { Dimensions, FlatList, Pressable, StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Animated, Dimensions, FlatList, Pressable, StyleSheet, View } from "react-native";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { formatRelativeTime } from "@/lib/format";
 import { ProviderIdentity } from "./ProviderIdentity";
 import { Text } from "./Text";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_ASPECT = 4 / 5;
-// Matches ExploreScreen's `feed` container's horizontal padding (Spacing.md
-// each side) — the card always renders edge-to-edge within it.
-const CARD_WIDTH = SCREEN_WIDTH - Spacing.md * 2;
 
 export type ExplorePostCardProps = {
   caption: string;
@@ -19,6 +18,7 @@ export type ExplorePostCardProps = {
   providerAvatarUrl?: string | null;
   location?: string | null;
   categoryTag?: string | null;
+  createdAt: string;
   images: string[];
   liked: boolean;
   saved: boolean;
@@ -28,14 +28,18 @@ export type ExplorePostCardProps = {
   onShare: () => void;
   onSourceThisLook: () => void;
   onPressProvider?: () => void;
+  /** Show the compact "Source this look" affordance on this post — the caller decides how often (M22.3 §23: not on every post). */
+  showSourceCta?: boolean;
 };
 
 /**
- * The visual-discovery post primitive for Explore (M21) — ONE dominant
- * portrait image per row (a swipeable carousel when there are several), a
- * provider header, a short caption, and an interaction row. Distinct from
- * ProductCard on purpose: no price, no MOQ, no vendor-commerce chrome —
- * Explore is inspiration, not a catalogue (AGENTS.md §2/§9, M19.2 §8-12).
+ * The visual-discovery post primitive for Explore (M22.3 §16-22) — media is
+ * edge-to-edge (no surrounding card border/margin), the provider header and
+ * caption own their own horizontal padding instead (see ExploreScreen's
+ * `feed`/`listContent`, which deliberately carries no horizontal padding of
+ * its own for this reason). Distinct from ProductCard on purpose: no price,
+ * no MOQ, no vendor-commerce chrome — Explore is inspiration, not a
+ * catalogue (AGENTS.md §2/§9).
  */
 export function ExplorePostCard({
   caption,
@@ -43,6 +47,7 @@ export function ExplorePostCard({
   providerAvatarUrl,
   location,
   categoryTag,
+  createdAt,
   images,
   liked,
   saved,
@@ -52,16 +57,37 @@ export function ExplorePostCard({
   onShare,
   onSourceThisLook,
   onPressProvider,
+  showSourceCta = false,
 }: ExplorePostCardProps) {
   const { colors } = useAppTheme();
   const [activeIndex, setActiveIndex] = useState(0);
-  const subtitle = [location, categoryTag].filter(Boolean).join(" · ") || null;
   const hasMultipleImages = images.length > 1;
+  const metaLine = [location, categoryTag].filter(Boolean).join("  ·  ") || null;
+  const timeLabel = formatRelativeTime(createdAt);
+
+  const [heartScale] = useState(() => new Animated.Value(1));
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (!liked) return;
+    Animated.sequence([
+      Animated.timing(heartScale, { toValue: 1.3, duration: 110, useNativeDriver: true }),
+      Animated.spring(heartScale, { toValue: 1, useNativeDriver: true, friction: 4, tension: 140 }),
+    ]).start();
+  }, [liked, heartScale]);
 
   return (
     <View style={styles.card}>
-      <Pressable onPress={onPressProvider} disabled={!onPressProvider} style={styles.header} accessibilityRole={onPressProvider ? "button" : undefined}>
-        <ProviderIdentity name={providerName} avatarUrl={providerAvatarUrl} subtitle={subtitle} size={32} />
+      <Pressable
+        onPress={onPressProvider}
+        disabled={!onPressProvider}
+        style={styles.header}
+        accessibilityRole={onPressProvider ? "button" : undefined}
+      >
+        <ProviderIdentity name={providerName} avatarUrl={providerAvatarUrl} size={30} />
       </Pressable>
 
       <View style={styles.imageWrap}>
@@ -73,11 +99,11 @@ export function ExplorePostCard({
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(event) => {
-              const index = Math.round(event.nativeEvent.contentOffset.x / CARD_WIDTH);
+              const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
               setActiveIndex(index);
             }}
             renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={{ width: CARD_WIDTH, height: CARD_WIDTH / IMAGE_ASPECT }} contentFit="cover" transition={150} />
+              <Image source={{ uri: item }} style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH / IMAGE_ASPECT }} contentFit="cover" transition={150} />
             )}
           />
         ) : (
@@ -87,11 +113,13 @@ export function ExplorePostCard({
         )}
 
         {categoryTag ? (
-          <View style={styles.tagPill}>
-            <Text variant="caption" tone="inverse" numberOfLines={1}>
-              {categoryTag.toUpperCase()}
-            </Text>
-          </View>
+          <LinearGradient colors={["transparent", "rgba(12,9,11,0.55)"]} style={styles.bottomScrim} pointerEvents="none">
+            <View style={styles.tagPill}>
+              <Text variant="caption" tone="inverse" numberOfLines={1}>
+                {categoryTag.toUpperCase()}
+              </Text>
+            </View>
+          </LinearGradient>
         ) : null}
 
         {hasMultipleImages ? (
@@ -103,51 +131,78 @@ export function ExplorePostCard({
         ) : null}
       </View>
 
-      <View style={styles.actionRow}>
-        <Pressable onPress={onToggleLike} accessibilityRole="button" accessibilityLabel={liked ? "Unlike" : "Like"} hitSlop={8} style={styles.actionItem}>
-          <Ionicons name={liked ? "heart" : "heart-outline"} size={22} color={liked ? colors.pink : colors.textPrimary} />
-          <Text variant="small" tone="secondary">
-            {likeCount}
+      <View style={styles.body}>
+        <View style={styles.actionRow}>
+          <Pressable onPress={onToggleLike} accessibilityRole="button" accessibilityLabel={liked ? "Unlike" : "Like"} hitSlop={8} style={styles.actionItem}>
+            <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+              <Ionicons name={liked ? "heart" : "heart-outline"} size={23} color={liked ? colors.pink : colors.textPrimary} />
+            </Animated.View>
+            <Text variant="small" tone="secondary">
+              {likeCount}
+            </Text>
+          </Pressable>
+          <Pressable onPress={onShare} accessibilityRole="button" accessibilityLabel="Share" hitSlop={8} style={styles.actionItem}>
+            <Ionicons name="paper-plane-outline" size={21} color={colors.textPrimary} />
+          </Pressable>
+          <View style={styles.spacer} />
+          <Pressable onPress={onToggleSave} accessibilityRole="button" accessibilityLabel={saved ? "Remove from saved" : "Save"} hitSlop={8}>
+            <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={21} color={saved ? colors.pink : colors.textPrimary} />
+          </Pressable>
+        </View>
+
+        <Text variant="body" tone="primary" numberOfLines={3} style={styles.caption}>
+          <Text variant="bodyMedium" tone="primary">
+            {providerName}{" "}
           </Text>
-        </Pressable>
-        <Pressable onPress={onShare} accessibilityRole="button" accessibilityLabel="Share" hitSlop={8} style={styles.actionItem}>
-          <Ionicons name="paper-plane-outline" size={20} color={colors.textPrimary} />
-        </Pressable>
-        <View style={styles.spacer} />
-        <Pressable onPress={onToggleSave} accessibilityRole="button" accessibilityLabel={saved ? "Remove from saved" : "Save"} hitSlop={8}>
-          <Ionicons name={saved ? "bookmark" : "bookmark-outline"} size={20} color={saved ? colors.pink : colors.textPrimary} />
-        </Pressable>
-      </View>
-
-      <Text variant="cardTitle" tone="primary" numberOfLines={2} style={styles.caption}>
-        {caption}
-      </Text>
-
-      <Pressable onPress={onSourceThisLook} style={[styles.sourceCta, { borderColor: colors.borderPremium }]} accessibilityRole="button">
-        <Ionicons name="sparkles-outline" size={13} color={colors.gold} />
-        <Text variant="smallMedium" tone="gold">
-          Source this look
+          {caption}
         </Text>
-      </Pressable>
+
+        <View style={styles.metaRow}>
+          {metaLine ? (
+            <Text variant="small" tone="secondary" numberOfLines={1} style={styles.metaText}>
+              {metaLine}
+            </Text>
+          ) : null}
+          {timeLabel ? (
+            <Text variant="caption" tone="muted">
+              {timeLabel}
+            </Text>
+          ) : null}
+        </View>
+
+        {showSourceCta ? (
+          <Pressable onPress={onSourceThisLook} style={[styles.sourceCta, { borderColor: colors.borderPremium }]} accessibilityRole="button">
+            <Ionicons name="sparkles-outline" size={13} color={colors.gold} />
+            <Text variant="smallMedium" tone="gold">
+              Source this look
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: { width: "100%" },
-  header: { marginBottom: Spacing.xs },
+  header: { paddingHorizontal: Spacing.md, marginBottom: Spacing.xs },
   imageWrap: {
     width: "100%",
     aspectRatio: IMAGE_ASPECT,
-    borderRadius: Radius.lg,
-    overflow: "hidden",
   },
   placeholderContent: { flex: 1, alignItems: "center", justifyContent: "center" },
-  tagPill: {
+  bottomScrim: {
     position: "absolute",
-    left: Spacing.sm,
-    bottom: Spacing.sm,
-    backgroundColor: "rgba(20,16,24,0.62)",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 56,
+    justifyContent: "flex-end",
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  tagPill: {
+    alignSelf: "flex-start",
     borderRadius: Radius.sm,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -163,16 +218,19 @@ const styles = StyleSheet.create({
   },
   dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(255,255,255,0.5)" },
   dotActive: { backgroundColor: "#FFFFFF", width: 14 },
-  actionRow: { flexDirection: "row", alignItems: "center", gap: Spacing.md, marginTop: Spacing.xs },
+  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm },
+  actionRow: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
   actionItem: { flexDirection: "row", alignItems: "center", gap: 6 },
   spacer: { flex: 1 },
-  caption: { marginTop: 4 },
+  caption: { marginTop: Spacing.xs, lineHeight: 19 },
+  metaRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 3, gap: Spacing.sm },
+  metaText: { flexShrink: 1 },
   sourceCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
     alignSelf: "flex-start",
-    marginTop: Spacing.xs,
+    marginTop: Spacing.sm,
     paddingHorizontal: Spacing.xs,
     paddingVertical: 5,
     borderRadius: Radius.pill,

@@ -157,7 +157,11 @@ export default function ExploreScreen() {
         }}
         refreshing={feedQuery.isRefetching && !feedQuery.isFetchingNextPage}
         onRefresh={() => feedQuery.refetch()}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ItemSeparatorComponent={() => (
+          <View style={styles.separator}>
+            <View style={[styles.separatorLine, { backgroundColor: colors.border }]} />
+          </View>
+        )}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="sparkles-outline" size={IconSize.xl} color={colors.textMuted} />
@@ -172,13 +176,14 @@ export default function ExploreScreen() {
             ) : null}
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <ExplorePostCard
             caption={item.caption}
             providerName={item.publisher.name}
             providerAvatarUrl={item.publisher.avatarUrl}
             location={item.location}
             categoryTag={item.category.name}
+            createdAt={item.createdAt}
             images={item.images}
             liked={item.engagement.likedByMe}
             saved={item.engagement.savedByMe}
@@ -188,6 +193,7 @@ export default function ExploreScreen() {
             onShare={() => onShare(item)}
             onSourceThisLook={onSourceThisLook}
             onPressProvider={() => router.push({ pathname: "/vendor/[slug]", params: { slug: item.publisher.storefrontSlug } })}
+            showSourceCta={index % 4 === 3}
           />
         )}
         ListFooterComponent={feedQuery.isFetchingNextPage ? <ActivityIndicator style={styles.footerLoader} color={colors.pink} /> : null}
@@ -212,7 +218,8 @@ const styles = StyleSheet.create({
   },
   feed: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
   skeletonGap: { marginTop: Spacing.lg },
-  separator: { height: Spacing.lg },
+  separator: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
+  separatorLine: { height: StyleSheet.hairlineWidth },
   empty: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.xs },
   emptyTitle: { textAlign: "center", marginTop: Spacing.xs },
   emptyMessage: { textAlign: "center" },

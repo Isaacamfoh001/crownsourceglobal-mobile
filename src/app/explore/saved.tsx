@@ -65,7 +65,11 @@ export default function SavedExplorePostsScreen() {
           }}
           refreshing={feedQuery.isRefetching && !feedQuery.isFetchingNextPage}
           onRefresh={() => feedQuery.refetch()}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={() => (
+            <View style={styles.separator}>
+              <View style={[styles.separatorLine, { backgroundColor: colors.border }]} />
+            </View>
+          )}
           ListEmptyComponent={<EmptyState icon="bookmark-outline" title="Nothing saved yet" message="Tap the bookmark icon on a post to save it here." />}
           renderItem={({ item }) => (
             <ExplorePostCard
@@ -74,6 +78,7 @@ export default function SavedExplorePostsScreen() {
               providerAvatarUrl={item.publisher.avatarUrl}
               location={item.location}
               categoryTag={item.category.name}
+              createdAt={item.createdAt}
               images={item.images}
               liked={item.engagement.likedByMe}
               saved={item.engagement.savedByMe}
@@ -103,7 +108,8 @@ const styles = StyleSheet.create({
   },
   headerSpacer: { width: 24 },
   feed: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
-  listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xxl },
-  separator: { height: Spacing.lg },
+  listContent: { paddingBottom: Spacing.xxl },
+  separator: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
+  separatorLine: { height: StyleSheet.hairlineWidth },
   footerLoader: { marginVertical: Spacing.md },
 });

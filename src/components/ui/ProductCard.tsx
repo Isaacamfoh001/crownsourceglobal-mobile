@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { Pressable, StyleSheet, View } from "react-native";
-import { IconSize, Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatMoney } from "@/lib/format";
 import type { ListingSummaryDTO } from "@/types/api";
 import { AvailabilityBadge } from "./Badge";
+import { FallbackImage } from "./FallbackImage";
 import { Text } from "./Text";
 
 type ProductCardProps = {
@@ -14,7 +14,14 @@ type ProductCardProps = {
   width?: number;
 };
 
-/** The product-card primitive reused by Home, Shop and the Vendor storefront — one image treatment, one price/title/vendor hierarchy. Explore uses ExplorePostCard instead — a product grid and a visual-discovery feed are different products, not the same card at a different width. */
+/**
+ * The product-card primitive reused by Home, Shop and the Vendor storefront
+ * (M22.3 §7-9) — a tall 4:5 merchandise image dominates the card, with a
+ * brand-line/title/price hierarchy below rather than a database-record
+ * layout. Explore uses ExplorePostCard instead — a product grid and a
+ * visual-discovery feed are different products, not the same card at a
+ * different width.
+ */
 export function ProductCard({ listing, onPress, width }: ProductCardProps) {
   const { colors, shadow } = useAppTheme();
 
@@ -31,13 +38,22 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
       ]}
     >
       <View style={[styles.imageWrap, { backgroundColor: colors.surfaceSubtle }]}>
-        {listing.primaryImage ? (
-          <Image source={{ uri: listing.primaryImage }} style={styles.image} contentFit="cover" transition={150} />
-        ) : (
-          <View style={[styles.image, styles.imageFallback]}>
-            <Ionicons name="image-outline" size={IconSize.lg} color={colors.textMuted} />
-          </View>
-        )}
+        <FallbackImage
+          uri={listing.primaryImage}
+          style={styles.image}
+          contentFit="cover"
+          transition={150}
+          fallback={
+            <View style={styles.imageFallback}>
+              <View style={[styles.fallbackBadge, { backgroundColor: colors.surface }]}>
+                <Ionicons name="sparkles-outline" size={18} color={colors.gold} />
+              </View>
+              <Text variant="caption" tone="muted" numberOfLines={1} style={styles.fallbackLabel}>
+                {listing.category.name}
+              </Text>
+            </View>
+          }
+        />
         {listing.availabilityStatus !== "IN_STOCK" && (
           <View style={styles.badgeOverlay}>
             <AvailabilityBadge status={listing.availabilityStatus} />
@@ -46,8 +62,8 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
       </View>
 
       <View style={styles.body}>
-        <Text variant="small" tone="secondary" numberOfLines={1}>
-          {listing.vendor.companyName}
+        <Text variant="caption" tone="secondary" numberOfLines={1} style={styles.vendor}>
+          {listing.vendor.companyName.toUpperCase()}
         </Text>
         <Text variant="cardTitle" tone="primary" numberOfLines={2} style={styles.title}>
           {listing.title}
@@ -57,9 +73,11 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
             {formatMoney(listing.price)}
           </Text>
           {listing.hasBulkPricing && (
-            <Text variant="caption" tone="gold" numberOfLines={1}>
-              BULK
-            </Text>
+            <View style={[styles.bulkChip, { backgroundColor: colors.goldSurface }]}>
+              <Text variant="caption" tone="gold" numberOfLines={1}>
+                BULK
+              </Text>
+            </View>
           )}
         </View>
         {listing.moq > 1 && (
@@ -82,14 +100,18 @@ const styles = StyleSheet.create({
   flexCard: { flex: 1 },
   pressed: { opacity: 0.9 },
   imageWrap: {
-    aspectRatio: 1,
+    aspectRatio: 4 / 5,
   },
   image: { width: "100%", height: "100%" },
-  imageFallback: { alignItems: "center", justifyContent: "center" },
+  imageFallback: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: Spacing.sm },
+  fallbackBadge: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  fallbackLabel: { textAlign: "center" },
   badgeOverlay: { position: "absolute", top: Spacing.xs, left: Spacing.xs },
   body: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, gap: 1 },
+  vendor: { letterSpacing: 0.4 },
   title: { marginTop: 1 },
-  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 3, gap: Spacing.xxs },
+  priceRow: { flexDirection: "row", alignItems: "center", marginTop: 3, gap: Spacing.xxs },
   priceText: { flexShrink: 1 },
+  bulkChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm },
   moq: { marginTop: 1 },
 });

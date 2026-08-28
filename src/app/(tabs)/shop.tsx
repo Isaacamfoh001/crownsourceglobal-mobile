@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { SearchField } from "@/components/ui/SearchField";
-import { CategoryTile } from "@/components/ui/CategoryTile";
+import { CategoryIconTile } from "@/components/ui/CategoryIconTile";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { SkeletonCardGrid } from "@/components/ui/Skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/StateViews";
@@ -12,25 +12,24 @@ import { Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useListings } from "@/features/shop/useListings";
 import { useCategories } from "@/features/categories/useCategories";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import type { ListingSummaryDTO } from "@/types/api";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
 /**
- * Shop is pure product commerce (AGENTS.md §3, M19.2 §14-16). Its header,
- * category/filter rail, results meta and product grid each own a distinct
- * vertical region — see the four top-level Views below — specifically to
- * fix the M19.2-reported bug where category chips were overlapped by
- * product cards. Root cause: the category rail was a `FlatList` with no
- * explicit height wrapper; a horizontal FlatList's auto-height sizing next
- * to a sibling FlatList is exactly the kind of layout it's easy to get
- * wrong. Fixed by (a) switching the short, non-virtualization-worthy
- * category rail to a plain `ScrollView` — the same pattern Home's category
- * rail already used correctly — inside its own bordered section with fixed
- * vertical padding, and (b) giving the product grid `FlatList` an explicit
- * `flex: 1` so it unambiguously owns the remaining space instead of relying
- * on implicit sizing.
+ * Shop is pure product commerce (AGENTS.md §3, M22.3 §3-9) — deep
+ * art-direction rebuild: a visual icon-led category rail (CategoryIconTile,
+ * not the text-only CategoryTile pill), and a merchandise-forward
+ * ProductCard grid, closer to the client's Marketplace reference than a
+ * generic list-of-records screen.
+ *
+ * No sort control: `/api/v1/listings` has no `sort` param (see that
+ * route's own doc comment — "no sort exists on the web today, not
+ * invented for this API"), so the results line states the real, honest
+ * order ("Newest first") instead of presenting a filter/sort affordance
+ * that would silently do nothing (M22.3 §6).
  */
 export default function ShopScreen() {
   const { colors } = useAppTheme();
@@ -71,28 +70,35 @@ export default function ShopScreen() {
   return (
     <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
-        <Text variant="screenTitle" tone="primary">
+        <Text variant="sectionHeading" tone="primary">
           Shop
         </Text>
         <SearchField value={searchInput} onChangeText={setSearchInput} placeholder="Search products…" />
       </View>
 
       {categoriesQuery.data && categoriesQuery.data.categories.length > 0 && (
-        <View style={[styles.categorySection, { borderBottomColor: colors.border }]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            <CategoryTile label="All" selected={!selectedCategory} onPress={() => setSelectedCategory(undefined)} />
-            {categoriesQuery.data.categories.map((item) => (
-              <CategoryTile key={item.id} label={item.name} selected={selectedCategory === item.slug} onPress={() => setSelectedCategory(item.slug)} />
-            ))}
-          </ScrollView>
-        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRail}>
+          <CategoryIconTile label="All" icon="grid-outline" selected={!selectedCategory} onPress={() => setSelectedCategory(undefined)} />
+          {categoriesQuery.data.categories.map((item) => (
+            <CategoryIconTile
+              key={item.id}
+              label={item.name}
+              icon={getCategoryIcon(item.slug)}
+              selected={selectedCategory === item.slug}
+              onPress={() => setSelectedCategory(item.slug)}
+            />
+          ))}
+        </ScrollView>
       )}
 
       {!listingsQuery.isPending && !listingsQuery.isError && rows.length > 0 && (
-        <View style={styles.resultsMeta}>
+        <View style={[styles.resultsMeta, { borderBottomColor: colors.border }]}>
           <Text variant="small" tone="secondary">
             {total} product{total === 1 ? "" : "s"}
             {selectedCategoryName ? ` in ${selectedCategoryName}` : ""}
+          </Text>
+          <Text variant="small" tone="muted">
+            Newest first
           </Text>
         </View>
       )}
@@ -148,9 +154,17 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, gap: Spacing.xs },
-  categorySection: { marginTop: Spacing.xs, paddingVertical: Spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth },
-  chipRow: { paddingHorizontal: Spacing.md, gap: Spacing.xs },
-  resultsMeta: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, paddingBottom: Spacing.xxs },
+  categoryRail: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, gap: Spacing.sm },
+  resultsMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    marginTop: Spacing.xs,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   loading: { marginTop: Spacing.sm },
   grid: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.xxl, gap: Spacing.sm },
   column: { gap: Spacing.sm },
