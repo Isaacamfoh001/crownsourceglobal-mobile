@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ImageGallery } from "@/components/ui/ImageGallery";
 import { Text } from "@/components/ui/Text";
@@ -8,7 +8,7 @@ import { AvailabilityBadge } from "@/components/ui/Badge";
 import { IconButton } from "@/components/ui/IconButton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
-import { Radius, Spacing } from "@/constants/theme";
+import { Radius, Spacing, TouchTarget } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatMoney } from "@/lib/format";
 import { friendlyErrorMessage } from "@/lib/api/errors";
@@ -82,7 +82,7 @@ export default function ListingDetailScreen() {
               </View>
 
               {listing.bulkPriceTiers.length > 0 && (
-                <View style={styles.section}>
+                <View style={[styles.section, { borderTopColor: colors.border }]}>
                   <Text variant="sectionHeading" tone="primary" style={styles.sectionTitle}>
                     Bulk pricing
                   </Text>
@@ -101,7 +101,7 @@ export default function ListingDetailScreen() {
                 </View>
               )}
 
-              <View style={styles.section}>
+              <View style={[styles.section, { borderTopColor: colors.border }]}>
                 <Text variant="sectionHeading" tone="primary" style={styles.sectionTitle}>
                   Description
                 </Text>
@@ -111,7 +111,7 @@ export default function ListingDetailScreen() {
               </View>
 
               {listing.specs && Object.keys(listing.specs).length > 0 && (
-                <View style={styles.section}>
+                <View style={[styles.section, { borderTopColor: colors.border }]}>
                   <Text variant="sectionHeading" tone="primary" style={styles.sectionTitle}>
                     Specifications
                   </Text>
@@ -135,8 +135,18 @@ export default function ListingDetailScreen() {
       </ScrollView>
 
       <SafeAreaView edges={["top"]} style={styles.headerOverlay} pointerEvents="box-none">
-        <View style={styles.backButtonWrap}>
-          <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        <View style={styles.overlayRow}>
+          <IconButton name="chevron-back" size={20} onPress={() => router.back()} accessibilityLabel="Go back" />
+          {listing && (
+            <IconButton
+              name="share-outline"
+              size={19}
+              onPress={() => {
+                Share.share({ message: `${listing.title} — via CrownSourceGlobal` }).catch(() => {});
+              }}
+              accessibilityLabel="Share this product"
+            />
+          )}
         </View>
       </SafeAreaView>
 
@@ -151,11 +161,9 @@ export default function ListingDetailScreen() {
                 {formatMoney(listing.price)}
               </Text>
             </View>
-            <View style={[styles.disabledCta, { backgroundColor: colors.surfaceSubtle }]}>
+            <View style={[styles.disabledCta, { borderColor: colors.border }]}>
+              <Ionicons name="bag-handle-outline" size={15} color={colors.textMuted} />
               <Text variant="bodyMedium" tone="muted">
-                Add to Cart
-              </Text>
-              <Text variant="caption" tone="muted">
                 Coming soon
               </Text>
             </View>
@@ -184,8 +192,13 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 110 },
   loadingBody: { padding: Spacing.md, gap: Spacing.sm },
   gap: { marginTop: Spacing.sm },
-  headerOverlay: { position: "absolute", top: 0, left: 0 },
-  backButtonWrap: { marginTop: Spacing.xs, marginLeft: Spacing.sm },
+  headerOverlay: { position: "absolute", top: 0, left: 0, right: 0 },
+  overlayRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: Spacing.xs,
+    marginHorizontal: Spacing.sm,
+  },
   body: { padding: Spacing.md, gap: Spacing.xs },
   vendorRow: { flexDirection: "row", alignItems: "center", gap: 2 },
   vendorRowText: { flexShrink: 1 },
@@ -194,7 +207,7 @@ const styles = StyleSheet.create({
   priceValue: { flexShrink: 1 },
   metaGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.md },
   metaItem: { minWidth: "28%" },
-  section: { marginTop: Spacing.lg },
+  section: { marginTop: Spacing.lg, paddingTop: Spacing.lg, borderTopWidth: StyleSheet.hairlineWidth },
   sectionTitle: { marginBottom: Spacing.xs },
   description: { lineHeight: 22 },
   tiersCard: {
@@ -227,9 +240,13 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
   },
   disabledCta: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 6,
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    height: TouchTarget,
     borderRadius: Radius.pill,
+    borderWidth: 1,
+    borderStyle: "dashed",
   },
 });

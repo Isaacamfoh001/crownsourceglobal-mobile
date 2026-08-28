@@ -18,7 +18,7 @@ const THUMB_SIZE = 88;
  * persisted data in M22 (prisma/schema.prisma's section header).
  */
 export function BeautyProfessionalCard({ professional, onPress }: { professional: BeautyProfessionalSummaryDTO; onPress: () => void }) {
-  const { colors } = useAppTheme();
+  const { colors, shadow } = useAppTheme();
   const thumbnailUri = professional.heroImageUrl ?? professional.avatarUrl;
   const specialtyLabel = professional.specialties.slice(0, 2).map((s) => s.name).join(" · ");
 
@@ -27,7 +27,7 @@ export function BeautyProfessionalCard({ professional, onPress }: { professional
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={professional.displayName}
-      style={({ pressed }) => [styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.card, { backgroundColor: colors.surface, ...shadow.card }, pressed && styles.pressed]}
     >
       <View style={[styles.thumbWrap, { backgroundColor: colors.surfaceSubtle }]}>
         <FallbackImage
@@ -88,7 +88,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     padding: Spacing.sm,
     borderRadius: Radius.lg,
-    borderWidth: 1,
   },
   pressed: { opacity: 0.85 },
   thumbWrap: { width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: Radius.md, overflow: "hidden" },

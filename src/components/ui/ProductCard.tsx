@@ -25,7 +25,7 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
       accessibilityLabel={`${listing.title}, ${formatMoney(listing.price)}, sold by ${listing.vendor.companyName}`}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: colors.surface, borderColor: colors.border, ...shadow.card },
+        { backgroundColor: colors.surface, ...shadow.card },
         width ? { width } : styles.flexCard,
         pressed && styles.pressed,
       ]}
@@ -63,7 +63,7 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
           )}
         </View>
         {listing.moq > 1 && (
-          <Text variant="small" tone="muted" numberOfLines={1}>
+          <Text variant="small" tone="muted" numberOfLines={1} style={styles.moq}>
             MOQ {listing.moq}
           </Text>
         )}
@@ -78,7 +78,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: CARD_RADIUS,
     overflow: "hidden",
-    borderWidth: StyleSheet.hairlineWidth,
   },
   flexCard: { flex: 1 },
   pressed: { opacity: 0.9 },
@@ -88,8 +87,9 @@ const styles = StyleSheet.create({
   image: { width: "100%", height: "100%" },
   imageFallback: { alignItems: "center", justifyContent: "center" },
   badgeOverlay: { position: "absolute", top: Spacing.xs, left: Spacing.xs },
-  body: { padding: Spacing.sm, gap: 2 },
-  title: { minHeight: 38 },
-  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2, gap: Spacing.xxs },
+  body: { paddingHorizontal: Spacing.sm, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, gap: 1 },
+  title: { marginTop: 1 },
+  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 3, gap: Spacing.xxs },
   priceText: { flexShrink: 1 },
+  moq: { marginTop: 1 },
 });

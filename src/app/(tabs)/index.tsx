@@ -146,7 +146,7 @@ export default function HomeScreen() {
           </Pressable>
         </LinearGradient>
 
-        <View style={styles.capabilityGrid}>
+        <View style={styles.capabilityRow}>
           {capabilities.map((item) => (
             <CapabilityCard key={item.key} item={item} colors={heroColors} />
           ))}
@@ -209,12 +209,12 @@ function CapabilityCard({ item, colors }: { item: CapabilityItem; colors: ThemeC
       onPress={item.onPress}
       accessibilityRole="button"
       accessibilityLabel={item.label}
-      style={({ pressed }) => [styles.capabilityCard, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.capabilityCard, pressed && styles.pressed]}
     >
-      <View style={[styles.capabilityIcon, { backgroundColor: colors.goldSurface }]}>
-        <Ionicons name={item.icon} size={IconSize.md} color={colors.goldStrong} />
+      <View style={[styles.capabilityIcon, { backgroundColor: "rgba(255,255,255,0.06)", borderColor: colors.borderPremium }]}>
+        <Ionicons name={item.icon} size={IconSize.md} color={colors.gold} />
       </View>
-      <Text variant="smallMedium" numberOfLines={2} style={[styles.capabilityLabel, { color: colors.textPrimary }]}>
+      <Text variant="caption" numberOfLines={2} style={[styles.capabilityLabel, { color: colors.textSecondary }]}>
         {item.label}
       </Text>
     </Pressable>
@@ -263,19 +263,14 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
 
-  capabilityGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.md },
+  capabilityRow: { flexDirection: "row", marginTop: Spacing.lg },
   capabilityCard: {
-    flexBasis: "47%",
-    flexGrow: 1,
+    flex: 1,
     alignItems: "center",
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
-    borderRadius: Radius.md,
-    borderWidth: 1,
+    gap: 6,
   },
-  capabilityIcon: { width: 40, height: 40, borderRadius: Radius.pill, alignItems: "center", justifyContent: "center" },
-  capabilityLabel: { textAlign: "center" },
+  capabilityIcon: { width: 46, height: 46, borderRadius: Radius.lg, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  capabilityLabel: { textAlign: "center", lineHeight: 13 },
 
   loadingBlock: { paddingHorizontal: Spacing.md, marginTop: Spacing.lg, gap: Spacing.md },
   loadingRow: { flexDirection: "row", gap: Spacing.sm },

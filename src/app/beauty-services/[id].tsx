@@ -52,7 +52,7 @@ export default function BeautyProfessionalDetailScreen() {
   return (
     <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        <IconButton name="chevron-back" size={20} onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text variant="cardTitle" tone="primary" numberOfLines={1} style={styles.headerTitle}>
           {professional?.displayName ?? "Professional"}
         </Text>
@@ -136,12 +136,12 @@ export default function BeautyProfessionalDetailScreen() {
                   No services listed yet.
                 </Text>
               ) : (
-                <View style={styles.servicesList}>
-                  {professional.services.map((service) => (
+                <View style={[styles.servicesList, { backgroundColor: colors.surface }]}>
+                  {professional.services.map((service, index) => (
                     <Pressable
                       key={service.id}
                       onPress={() => goToRequest(service.id)}
-                      style={[styles.serviceRow, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                      style={[styles.serviceRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
                       accessibilityRole="button"
                       accessibilityLabel={`Request ${service.name}`}
                     >
@@ -240,8 +240,8 @@ const styles = StyleSheet.create({
   section: { marginTop: Spacing.lg },
   sectionTitle: { marginBottom: Spacing.sm },
   bio: { lineHeight: 21 },
-  servicesList: { gap: Spacing.xs },
-  serviceRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, padding: Spacing.sm, borderRadius: Radius.md, borderWidth: 1 },
+  servicesList: { borderRadius: Radius.lg, overflow: "hidden" },
+  serviceRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, padding: Spacing.sm },
   serviceInfo: { flex: 1, gap: 2 },
   serviceDescription: { marginTop: 1 },
   servicePrice: { marginTop: 2 },

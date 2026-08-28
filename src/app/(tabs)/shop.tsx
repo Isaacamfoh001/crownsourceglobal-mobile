@@ -147,10 +147,10 @@ export default function ShopScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, gap: Spacing.sm },
-  categorySection: { marginTop: Spacing.sm, paddingVertical: Spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth },
+  header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, gap: Spacing.xs },
+  categorySection: { marginTop: Spacing.xs, paddingVertical: Spacing.xs, borderBottomWidth: StyleSheet.hairlineWidth },
   chipRow: { paddingHorizontal: Spacing.md, gap: Spacing.xs },
-  resultsMeta: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.xxs },
+  resultsMeta: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, paddingBottom: Spacing.xxs },
   loading: { marginTop: Spacing.sm },
   grid: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, paddingBottom: Spacing.xxl, gap: Spacing.sm },
   column: { gap: Spacing.sm },

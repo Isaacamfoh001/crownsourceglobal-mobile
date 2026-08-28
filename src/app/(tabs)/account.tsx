@@ -6,6 +6,7 @@ import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
+import { AppLogo } from "@/components/ui/AppLogo";
 import { AppearanceSetting } from "@/components/ui/AppearanceSetting";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -74,15 +75,13 @@ function SignedOutAccount() {
   return (
     <Screen>
       <View style={styles.container}>
-        <View style={[styles.iconCircle, { backgroundColor: colors.textPrimary }]}>
-          <Ionicons name="person" size={34} color={colors.surface} />
-        </View>
+        <AppLogo width={96} />
 
-        <Text variant="screenTitle" tone="primary" style={styles.center}>
-          Sign in to manage your account
+        <Text variant="screenTitle" tone="primary" style={[styles.center, styles.title]}>
+          Sign in for the full experience
         </Text>
-        <Text variant="body" tone="secondary" style={[styles.center, styles.body]}>
-          Sign in to manage orders, sourcing requests, saved items and your CrownSourceGlobal profile.
+        <Text variant="body" tone="secondary" style={styles.center}>
+          Orders, sourcing requests and saved items, all in one place.
         </Text>
 
         <View style={styles.authActions}>
@@ -90,21 +89,22 @@ function SignedOutAccount() {
           <Button label="Create account" variant="outline" onPress={() => router.push("/(auth)/sign-up")} fullWidth />
         </View>
 
-        <View style={styles.section}>
-          <AppearanceSetting />
-        </View>
-
-        <View style={styles.list}>
-          {SIGNED_OUT_BENEFITS.map((item) => (
-            <View key={item.label} style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={[styles.listIcon, { backgroundColor: colors.surfaceSubtle }]}>
-                <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
-              </View>
+        <View style={styles.valueList}>
+          {SIGNED_OUT_BENEFITS.map((item, index) => (
+            <View
+              key={item.label}
+              style={[styles.valueRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
+            >
+              <Ionicons name={item.icon} size={18} color={colors.goldStrong} />
               <Text variant="body" tone="secondary">
                 {item.label}
               </Text>
             </View>
           ))}
+        </View>
+
+        <View style={styles.section}>
+          <AppearanceSetting />
         </View>
       </View>
     </Screen>
@@ -115,10 +115,18 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
   const { colors } = useAppTheme();
   const initial = me.user.name.trim().charAt(0).toUpperCase() || "?";
 
+  const menuItems: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress?: () => void }[] = [
+    { icon: "sparkles-outline", label: "Service requests", onPress: () => router.push("/beauty-services/my-requests") },
+    { icon: "receipt-outline", label: "Orders" },
+    { icon: "earth-outline", label: "Sourcing requests" },
+    { icon: "heart-outline", label: "Saved products" },
+    { icon: "chatbubble-ellipses-outline", label: "Messages" },
+  ];
+
   return (
     <Screen>
       <View style={styles.container}>
-        <View style={[styles.iconCircle, { backgroundColor: colors.textPrimary }]}>
+        <View style={[styles.avatar, { backgroundColor: colors.textPrimary, borderColor: colors.gold }]}>
           <Text variant="screenTitle" style={{ color: colors.surface }}>
             {initial}
           </Text>
@@ -127,7 +135,7 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
         <Text variant="screenTitle" tone="primary" style={styles.center}>
           {me.user.name}
         </Text>
-        <Text variant="body" tone="secondary" style={styles.center}>
+        <Text variant="small" tone="secondary" style={styles.center}>
           {me.user.email}
         </Text>
 
@@ -144,71 +152,68 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
             <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
               YOUR STORE
             </Text>
-            {me.vendor.memberships.map((membership) => (
-              <View key={membership.vendorId} style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
-                  <Ionicons name="storefront-outline" size={18} color={colors.goldStrong} />
+            <View style={[styles.groupedList, { backgroundColor: colors.surface }]}>
+              {me.vendor.memberships.map((membership, index) => (
+                <View
+                  key={membership.vendorId}
+                  style={[styles.groupedRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
+                >
+                  <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
+                    <Ionicons name="storefront-outline" size={18} color={colors.goldStrong} />
+                  </View>
+                  <View style={styles.flex}>
+                    <Text variant="bodyMedium" tone="primary">
+                      {membership.companyName}
+                    </Text>
+                    <Text variant="small" tone="secondary">
+                      {membership.verificationStatus}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.flex}>
-                  <Text variant="bodyMedium" tone="primary">
-                    {membership.companyName}
-                  </Text>
-                  <Text variant="small" tone="secondary">
-                    {membership.verificationStatus}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
 
         {!me.vendor.available && me.vendorApplication && (
           <View style={styles.section}>
-            <View style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
-                <Ionicons name="time-outline" size={18} color={colors.goldStrong} />
+            <View style={[styles.groupedList, { backgroundColor: colors.surface }]}>
+              <View style={styles.groupedRow}>
+                <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
+                  <Ionicons name="time-outline" size={18} color={colors.goldStrong} />
+                </View>
+                <Text variant="body" tone="secondary">
+                  Vendor application {me.vendorApplication.status.toLowerCase().replace(/_/g, " ")}
+                </Text>
               </View>
-              <Text variant="body" tone="secondary">
-                Vendor application {me.vendorApplication.status.toLowerCase().replace(/_/g, " ")}
-              </Text>
             </View>
           </View>
         )}
 
         <View style={styles.section}>
-          <AppearanceSetting />
+          <View style={[styles.groupedList, { backgroundColor: colors.surface }]}>
+            {menuItems.map((item, index) => (
+              <Pressable
+                key={item.label}
+                onPress={item.onPress}
+                disabled={!item.onPress}
+                accessibilityRole="button"
+                style={[styles.groupedRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
+              >
+                <View style={[styles.listIcon, { backgroundColor: colors.surfaceSubtle }]}>
+                  <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
+                </View>
+                <Text variant="body" tone={item.onPress ? "primary" : "secondary"} style={styles.flex}>
+                  {item.label}
+                </Text>
+                {item.onPress && <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />}
+              </Pressable>
+            ))}
+          </View>
         </View>
 
-        <View style={styles.list}>
-          <Pressable
-            onPress={() => router.push("/beauty-services/my-requests")}
-            accessibilityRole="button"
-            style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
-              <Ionicons name="sparkles-outline" size={18} color={colors.goldStrong} />
-            </View>
-            <Text variant="body" tone="primary" style={styles.flex}>
-              Service requests
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
-
-          {[
-            { icon: "receipt-outline" as const, label: "Orders" },
-            { icon: "earth-outline" as const, label: "Sourcing requests" },
-            { icon: "heart-outline" as const, label: "Saved products" },
-            { icon: "chatbubble-ellipses-outline" as const, label: "Messages" },
-          ].map((item) => (
-            <View key={item.label} style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <View style={[styles.listIcon, { backgroundColor: colors.surfaceSubtle }]}>
-                <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
-              </View>
-              <Text variant="body" tone="secondary">
-                {item.label}
-              </Text>
-            </View>
-          ))}
+        <View style={styles.section}>
+          <AppearanceSetting />
         </View>
 
         <Button label="Sign out" variant="outline" onPress={onSignOut} fullWidth style={styles.signOut} />
@@ -217,20 +222,22 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
   );
 }
 
+
 const styles = StyleSheet.create({
-  container: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.md },
+  container: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.sm },
   loadingContainer: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.md },
-  iconCircle: {
+  title: { marginTop: Spacing.sm },
+  avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1.5,
     marginBottom: Spacing.xs,
   },
   center: { textAlign: "center" },
-  body: { marginBottom: Spacing.xs },
-  authActions: { alignSelf: "stretch", gap: Spacing.sm, marginTop: Spacing.xs },
+  authActions: { alignSelf: "stretch", gap: Spacing.sm, marginTop: Spacing.md },
   badge: {
     borderWidth: 1,
     borderRadius: Radius.pill,
@@ -239,15 +246,10 @@ const styles = StyleSheet.create({
   },
   section: { alignSelf: "stretch", marginTop: Spacing.lg },
   sectionLabel: { marginBottom: Spacing.xs, letterSpacing: 0.5 },
-  list: { alignSelf: "stretch", marginTop: Spacing.lg, gap: Spacing.sm },
-  listRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
+  valueList: { alignSelf: "stretch", marginTop: Spacing.xl, gap: 0 },
+  valueRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, paddingVertical: Spacing.sm },
+  groupedList: { borderRadius: Radius.lg, overflow: "hidden" },
+  groupedRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, padding: Spacing.sm },
   listIcon: {
     width: 32,
     height: 32,
@@ -256,5 +258,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   flex: { flex: 1 },
-  signOut: { marginTop: Spacing.lg },
+  signOut: { marginTop: Spacing.xl, alignSelf: "stretch" },
 });

@@ -33,7 +33,7 @@ export default function VendorStorefrontScreen() {
   return (
     <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
       <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        <IconButton name="chevron-back" size={20} onPress={() => router.back()} accessibilityLabel="Go back" />
         <Text variant="cardTitle" tone="primary" numberOfLines={1} style={styles.headerTitle}>
           {vendor?.companyName ?? "Vendor"}
         </Text>
@@ -66,7 +66,7 @@ export default function VendorStorefrontScreen() {
           }}
           ListHeaderComponent={
             <View style={[styles.identity, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-              <View style={styles.logoWrap}>
+              <View style={[styles.logoWrap, { borderColor: colors.borderPremium }]}>
                 {vendor.logoUrl ? (
                   <Image source={{ uri: vendor.logoUrl }} style={styles.logo} contentFit="cover" />
                 ) : (
@@ -137,8 +137,8 @@ const styles = StyleSheet.create({
   gap: { marginTop: Spacing.sm },
   identity: { alignItems: "center", paddingHorizontal: Spacing.md, paddingTop: Spacing.md, paddingBottom: Spacing.md, borderBottomWidth: StyleSheet.hairlineWidth },
   center: { textAlign: "center" },
-  logoWrap: { marginBottom: Spacing.sm },
-  logo: { width: 84, height: 84, borderRadius: 42 },
+  logoWrap: { marginBottom: Spacing.sm, borderRadius: 44, borderWidth: 1.5, padding: 3 },
+  logo: { width: 80, height: 80, borderRadius: 40 },
   logoFallback: { alignItems: "center", justifyContent: "center" },
   badgeRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: Spacing.sm, marginTop: Spacing.xs },
   verifiedBadge: {

@@ -75,53 +75,49 @@ export default function ExploreScreen() {
   };
 
   const header = (
-    <View>
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <View style={styles.headerText}>
-            <Text variant="screenTitle" tone="primary">
-              Explore
-            </Text>
-            <Text variant="body" tone="secondary" style={styles.subtitle}>
-              Real work from stylists, salons and MUAs — hairstyles, braids, makeup, lashes and nails.
-            </Text>
-          </View>
-          <View style={styles.headerActions}>
+    <View style={styles.header}>
+      <View style={styles.headerRow}>
+        <Text variant="screenTitle" tone="primary">
+          Explore
+        </Text>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push("/(tabs)/source")}
+            accessibilityRole="button"
+            accessibilityLabel="Source a look from a photo"
+            hitSlop={6}
+            style={styles.headerIconButton}
+          >
+            <Ionicons name="camera-outline" size={22} color={colors.textPrimary} />
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              if (!isSignedIn) {
+                promptSignInRequired("view saved posts", "/(tabs)/explore");
+                return;
+              }
+              router.push("/explore/saved");
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Saved posts"
+            hitSlop={6}
+            style={styles.headerIconButton}
+          >
+            <Ionicons name="bookmark-outline" size={20} color={colors.textPrimary} />
+          </Pressable>
+          {canPost ? (
             <Pressable
-              onPress={() => {
-                if (!isSignedIn) {
-                  promptSignInRequired("view saved posts", "/(tabs)/explore");
-                  return;
-                }
-                router.push("/explore/saved");
-              }}
+              onPress={() => router.push("/explore/create")}
               accessibilityRole="button"
-              accessibilityLabel="Saved posts"
-              style={[styles.createButton, { backgroundColor: colors.surfaceSubtle }]}
+              accessibilityLabel="Share your work"
+              hitSlop={6}
+              style={[styles.headerIconButton, { backgroundColor: colors.pinkSurface }]}
             >
-              <Ionicons name="bookmark-outline" size={20} color={colors.textPrimary} />
+              <Ionicons name="add" size={20} color={colors.pink} />
             </Pressable>
-            {canPost ? (
-              <Pressable
-                onPress={() => router.push("/explore/create")}
-                accessibilityRole="button"
-                accessibilityLabel="Share your work"
-                style={[styles.createButton, { backgroundColor: colors.pinkSurface }]}
-              >
-                <Ionicons name="add" size={22} color={colors.pink} />
-              </Pressable>
-            ) : null}
-          </View>
+          ) : null}
         </View>
       </View>
-
-      <Pressable onPress={() => router.push("/(tabs)/source")} style={[styles.sourceCta, { backgroundColor: colors.pinkSurface }]} accessibilityRole="button">
-        <Ionicons name="camera" size={16} color={colors.pink} />
-        <Text variant="smallMedium" tone="pink" style={styles.sourceCtaText}>
-          Saw a look you love? Source it from a photo
-        </Text>
-        <Ionicons name="chevron-forward" size={14} color={colors.pink} />
-      </Pressable>
     </View>
   );
 
@@ -203,30 +199,17 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingBottom: Spacing.xxl },
-  listContent: { paddingBottom: Spacing.xxl },
-  header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, gap: 3 },
-  headerRow: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.sm },
-  headerText: { flex: 1, gap: 3 },
-  subtitle: { marginTop: 2 },
-  headerActions: { flexDirection: "row", gap: Spacing.xs },
-  createButton: {
-    width: 40,
-    height: 40,
+  listContent: { paddingBottom: Spacing.xxl + Spacing.lg },
+  header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, paddingBottom: Spacing.xs },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: Spacing.xs },
+  headerIconButton: {
+    width: 36,
+    height: 36,
     borderRadius: Radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
-  sourceCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.pill,
-  },
-  sourceCtaText: { flex: 1 },
   feed: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
   skeletonGap: { marginTop: Spacing.lg },
   separator: { height: Spacing.lg },

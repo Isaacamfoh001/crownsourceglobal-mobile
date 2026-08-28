@@ -52,7 +52,7 @@ export default function BeautyServicesScreen() {
     <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <IconButton name="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
+          <IconButton name="chevron-back" size={20} onPress={() => router.back()} accessibilityLabel="Go back" />
           <View style={styles.titleTextCol}>
             <Text variant="screenTitle" tone="primary">
               Beauty Services
