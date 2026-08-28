@@ -85,6 +85,58 @@ npm run web       # expo start --web
 This only ever talks to your local backend — never production — because the
 API base URL is explicit local config, never a hardcoded fallback.
 
+### Authentication on a physical device (M22.1)
+
+`EXPO_PUBLIC_API_BASE_URL` above only controls where the app sends its own
+`/api/v1/*` requests. Two backend-side env vars (`../crownsourceglobal/.env`
+or `.env.local`) independently control where **Better Auth's own generated
+URLs** point, and they behave differently on a physical device:
+
+| Backend env var | Used for | Physical-device requirement |
+| --- | --- | --- |
+| `BETTER_AUTH_URL` | Builds Better Auth's own `/api/auth/*` absolute URLs, **including the Google OAuth `redirect_uri`** | Must stay `http://localhost:3000` — Google's OAuth policy only accepts a non-HTTPS redirect URI for exactly `localhost`/`127.0.0.1`, never a LAN IP. See "Google Sign-In" below. |
+| `NEXT_PUBLIC_APP_URL` | Builds links in emails and absolute image URLs returned by `/api/v1/*` (listing/Explore/Beauty-Services photos) | Set to your Mac's LAN IP (`.env.local`, gitignored) for a physical device to actually load images/links — see "Images" below. Safe to change: unlike `BETTER_AUTH_URL`, nothing constrains this value to `localhost`. |
+
+**Email/password sign-up works today with zero extra config** — the local
+default `EMAIL_PROVIDER=console` prints the verification email (subject +
+link) to the terminal running `npm run dev`, no Resend account needed. Open
+that link in a browser **on the same Mac** (not the phone) — verification is
+deliberately web-only by design (`src/app/(auth)/verify-email.tsx`'s own
+doc comment: an anti-open-redirect boundary rejects a `crownsourceglobal://`
+deep link on purpose), so the app expects you to verify in any browser, then
+come back and sign in natively. To receive the actual email on your phone
+instead, set `EMAIL_PROVIDER=resend` + `RESEND_API_KEY` + `EMAIL_FROM` in
+the backend's `.env.local`, **and** set `NEXT_PUBLIC_APP_URL` to your Mac's
+LAN IP so the emailed link is one your phone can actually open.
+
+**Google Sign-In cannot be fully tested against a bare local LAN backend,
+in Expo Go or a development build.** This is a Google policy constraint, not
+a bug: Google only accepts a plain-HTTP OAuth redirect URI for `localhost`/
+`127.0.0.1`, so `BETTER_AUTH_URL` must stay `http://localhost:3000` for
+Google to accept the request at all — but `localhost` on the redirect means
+your Mac to a browser running on your Mac, and means the phone itself to
+Safari running on your phone, which is why the callback fails with "Safari
+can't open the page" after you approve on Google's consent screen. Two ways
+to actually exercise it end-to-end:
+
+1. **Test against the deployed staging/production backend** (already
+   HTTPS, already has a registered redirect URI) from a development build
+   or TestFlight/internal build — the easiest option if a staging backend
+   exists.
+2. **Tunnel the local backend over HTTPS** (e.g. `ngrok http 3000`), then
+   for that session: set `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` to the
+   tunnel's `https://` URL, and add
+   `https://<tunnel-host>/api/auth/callback/google` as an Authorized
+   redirect URI on the Google OAuth client in Google Cloud Console. Expo
+   Go works fine for this — it's not an Expo-Go-specific limitation
+   (`@better-auth/expo`'s server plugin already trusts Expo Go's `exp://`
+   scheme automatically in development; the blocker is purely
+   `redirect_uri` reachability/HTTPS, unrelated to Expo Go vs. a dev
+   build).
+
+Web Google Sign-In is unaffected either way — a browser on the same Mac as
+the backend resolves `localhost` correctly.
+
 ## Commands
 
 | Command              | Purpose                              |

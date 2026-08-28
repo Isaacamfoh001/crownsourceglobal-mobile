@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router } from "expo-router";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
@@ -180,6 +180,20 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
         </View>
 
         <View style={styles.list}>
+          <Pressable
+            onPress={() => router.push("/beauty-services/my-requests")}
+            accessibilityRole="button"
+            style={[styles.listRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          >
+            <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
+              <Ionicons name="sparkles-outline" size={18} color={colors.goldStrong} />
+            </View>
+            <Text variant="body" tone="primary" style={styles.flex}>
+              Service requests
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+
           {[
             { icon: "receipt-outline" as const, label: "Orders" },
             { icon: "earth-outline" as const, label: "Sourcing requests" },

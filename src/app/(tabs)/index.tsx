@@ -81,6 +81,7 @@ export default function HomeScreen() {
 
   const capabilities: CapabilityItem[] = [
     { key: "marketplace", label: "Marketplace", icon: "storefront-outline", onPress: () => goToShop() },
+    { key: "beauty-services", label: "Beauty Services", icon: "sparkles-outline", onPress: () => router.push("/beauty-services") },
     { key: "explore", label: "Explore", icon: "compass-outline", onPress: () => router.push("/(tabs)/explore") },
     { key: "source", label: "Source", icon: "camera-outline", onPress: () => router.push("/(tabs)/source") },
     { key: "account", label: "Account", icon: "person-circle-outline", onPress: () => router.push("/(tabs)/account") },

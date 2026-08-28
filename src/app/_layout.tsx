@@ -63,6 +63,10 @@ export default function RootLayout() {
             <Stack.Screen name="vendor/[slug]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="explore/create" options={{ presentation: "modal" }} />
             <Stack.Screen name="explore/saved" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="beauty-services/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="beauty-services/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="beauty-services/request" options={{ presentation: "modal" }} />
+            <Stack.Screen name="beauty-services/my-requests" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
           </Stack>
         </QueryClientProvider>

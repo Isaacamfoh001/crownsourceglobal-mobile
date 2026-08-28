@@ -181,3 +181,60 @@ export type MyExplorePostDTO = {
   createdAt: string;
   updatedAt: string;
 };
+
+// --- Beauty Services (M22) — mirrors lib/api/dto/beauty-professionals.ts and lib/api/dto/service-requests.ts exactly --------
+
+export type ServiceLocationMode = "PROVIDER_LOCATION" | "CUSTOMER_LOCATION" | "BOTH";
+
+export type BeautyProfessionalSummaryDTO = {
+  id: string;
+  displayName: string;
+  bio: string | null;
+  avatarUrl: string | null;
+  heroImageUrl: string | null;
+  location: string | null;
+  specialties: ExploreCategoryDTO[];
+  fromPrice: Money | null;
+  createdAt: string;
+};
+
+export type BeautyServiceDTO = {
+  id: string;
+  name: string;
+  description: string | null;
+  startingPrice: Money | null;
+  category: ExploreCategoryDTO;
+};
+
+export type PortfolioItemDTO = { id: string; caption: string; images: string[] };
+
+export type BeautyProfessionalDetailDTO = BeautyProfessionalSummaryDTO & {
+  locationMode: ServiceLocationMode;
+  services: BeautyServiceDTO[];
+  portfolio: PortfolioItemDTO[];
+};
+
+/** The public discovery feed envelope — `GET /api/v1/beauty-professionals` — same cursor shape as ExplorePostFeedDTO. */
+export type BeautyProfessionalFeedDTO = {
+  rows: BeautyProfessionalSummaryDTO[];
+  nextCursor: string | null;
+};
+
+export type ServiceRequestStatus = "SUBMITTED" | "PROVIDER_ACCEPTED" | "PROVIDER_DECLINED" | "CANCELLED";
+
+export type ServiceRequestDTO = {
+  id: string;
+  status: ServiceRequestStatus;
+  preferredDate: string;
+  preferredTimeNote: string | null;
+  locationMode: "PROVIDER_LOCATION" | "CUSTOMER_LOCATION";
+  locationDetails: string | null;
+  notes: string | null;
+  quantity: number;
+  referenceImage: string | null;
+  declineReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  professional: { id: string; name: string };
+  service: { id: string; name: string };
+};
