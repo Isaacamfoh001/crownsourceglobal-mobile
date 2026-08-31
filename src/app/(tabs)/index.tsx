@@ -84,6 +84,7 @@ export default function HomeScreen() {
     { key: "beauty-services", label: "Beauty Services", icon: "sparkles-outline", onPress: () => router.push("/beauty-services") },
     { key: "explore", label: "Explore", icon: "compass-outline", onPress: () => router.push("/(tabs)/explore") },
     { key: "source", label: "Source", icon: "camera-outline", onPress: () => router.push("/(tabs)/source") },
+    { key: "careers", label: "Careers", icon: "briefcase-outline", onPress: () => router.push("/careers") },
     { key: "account", label: "Account", icon: "person-circle-outline", onPress: () => router.push("/(tabs)/account") },
   ];
 
@@ -263,9 +264,9 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
 
-  capabilityRow: { flexDirection: "row", marginTop: Spacing.lg },
+  capabilityRow: { flexDirection: "row", flexWrap: "wrap", marginTop: Spacing.lg, rowGap: Spacing.md },
   capabilityCard: {
-    flex: 1,
+    width: "33.33%",
     alignItems: "center",
     gap: 6,
   },

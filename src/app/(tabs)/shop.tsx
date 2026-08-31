@@ -77,7 +77,12 @@ export default function ShopScreen() {
       </View>
 
       {categoriesQuery.data && categoriesQuery.data.categories.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRail}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryRail}
+          contentContainerStyle={styles.categoryRailContent}
+        >
           <CategoryIconTile label="All" icon="grid-outline" selected={!selectedCategory} onPress={() => setSelectedCategory(undefined)} />
           {categoriesQuery.data.categories.map((item) => (
             <CategoryIconTile
@@ -154,15 +159,16 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, gap: Spacing.xs },
-  categoryRail: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md, gap: Spacing.sm },
+  // Load-bearing: ScrollView defaults to flexGrow:1, which stretched this into the "massive gap" bug — see the M23.1 report.
+  categoryRail: { flexGrow: 0, flexShrink: 0 },
+  categoryRailContent: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, gap: Spacing.sm },
   resultsMeta: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.sm,
-    marginTop: Spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   loading: { marginTop: Spacing.sm },

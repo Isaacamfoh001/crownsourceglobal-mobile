@@ -86,9 +86,9 @@ export default function ExploreScreen() {
             accessibilityRole="button"
             accessibilityLabel="Source a look from a photo"
             hitSlop={6}
-            style={styles.headerIconButton}
+            style={[styles.headerIconButton, { backgroundColor: colors.surfaceSubtle }]}
           >
-            <Ionicons name="camera-outline" size={22} color={colors.textPrimary} />
+            <Ionicons name="camera-outline" size={20} color={colors.textPrimary} />
           </Pressable>
           <Pressable
             onPress={() => {
@@ -101,9 +101,9 @@ export default function ExploreScreen() {
             accessibilityRole="button"
             accessibilityLabel="Saved posts"
             hitSlop={6}
-            style={styles.headerIconButton}
+            style={[styles.headerIconButton, { backgroundColor: colors.surfaceSubtle }]}
           >
-            <Ionicons name="bookmark-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="bookmark-outline" size={18} color={colors.textPrimary} />
           </Pressable>
           {canPost ? (
             <Pressable
@@ -157,6 +157,11 @@ export default function ExploreScreen() {
         }}
         refreshing={feedQuery.isRefetching && !feedQuery.isFetchingNextPage}
         onRefresh={() => feedQuery.refetch()}
+        // Small render window — image-heavy feed, avoid holding far-off posts' images in memory.
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        removeClippedSubviews
         ItemSeparatorComponent={() => (
           <View style={styles.separator}>
             <View style={[styles.separatorLine, { backgroundColor: colors.border }]} />
@@ -218,7 +223,7 @@ const styles = StyleSheet.create({
   },
   feed: { paddingHorizontal: Spacing.md, marginTop: Spacing.md },
   skeletonGap: { marginTop: Spacing.lg },
-  separator: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
+  separator: { paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md },
   separatorLine: { height: StyleSheet.hairlineWidth },
   empty: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xxl, gap: Spacing.xs },
   emptyTitle: { textAlign: "center", marginTop: Spacing.xs },

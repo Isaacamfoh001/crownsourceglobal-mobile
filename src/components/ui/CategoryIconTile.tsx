@@ -4,7 +4,7 @@ import { Radius } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { Text } from "./Text";
 
-const BUBBLE_SIZE = 48;
+const BUBBLE_SIZE = 52;
 
 type CategoryIconTileProps = {
   label: string;
@@ -39,11 +39,17 @@ export function CategoryIconTile({ label, icon, onPress, selected = false }: Cat
             backgroundColor: selected ? colors.pink : colors.surface,
             borderColor: selected ? colors.pink : colors.border,
           },
+          selected && [styles.bubbleSelected, { shadowColor: colors.pink }],
         ]}
       >
-        <Ionicons name={icon} size={20} color={selected ? colors.textOnAccent : colors.textSecondary} />
+        <Ionicons name={icon} size={21} color={selected ? colors.textOnAccent : colors.textSecondary} />
       </View>
-      <Text variant="small" tone={selected ? "pink" : "secondary"} numberOfLines={1} style={styles.label}>
+      <Text
+        variant={selected ? "smallMedium" : "small"}
+        tone={selected ? "pink" : "secondary"}
+        numberOfLines={2}
+        style={styles.label}
+      >
         {label}
       </Text>
     </Pressable>
@@ -51,7 +57,7 @@ export function CategoryIconTile({ label, icon, onPress, selected = false }: Cat
 }
 
 const styles = StyleSheet.create({
-  tile: { alignItems: "center", width: 68, gap: 6 },
+  tile: { alignItems: "center", width: 88, gap: 7 },
   pressed: { opacity: 0.8 },
   bubble: {
     width: BUBBLE_SIZE,
@@ -60,6 +66,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  // A soft lift rather than a louder fill — avoids a flat toggle-button "toy" look.
+  bubbleSelected: {
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 3,
   },
   label: { textAlign: "center" },
 });

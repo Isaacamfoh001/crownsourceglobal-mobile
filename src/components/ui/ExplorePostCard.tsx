@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Animated, Dimensions, FlatList, Pressable, StyleSheet, View } from "react-native";
+import { Animated, Dimensions, FlatList, Image as RNImage, Pressable, StyleSheet, View } from "react-native";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatRelativeTime } from "@/lib/format";
@@ -10,7 +10,15 @@ import { ProviderIdentity } from "./ProviderIdentity";
 import { Text } from "./Text";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const IMAGE_ASPECT = 4 / 5;
+
+// Clamp to each image's own aspect ratio instead of force-cropping to 4:5 — portrait ceiling and landscape floor match Instagram's own feed limits.
+const MAX_PORTRAIT_ASPECT = 4 / 5;
+const MAX_LANDSCAPE_ASPECT = 1.91;
+const DEFAULT_ASPECT = MAX_PORTRAIT_ASPECT;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 export type ExplorePostCardProps = {
   caption: string;
@@ -65,6 +73,29 @@ export function ExplorePostCard({
   const metaLine = [location, categoryTag].filter(Boolean).join("  ·  ") || null;
   const timeLabel = formatRelativeTime(createdAt);
 
+  // One fixed frame height across all of a post's images, from the first image's real measured aspect ratio.
+  const [mediaAspect, setMediaAspect] = useState(DEFAULT_ASPECT);
+  useEffect(() => {
+    const firstImage = images[0];
+    if (!firstImage) return;
+    let cancelled = false;
+    RNImage.getSize(
+      firstImage,
+      (width, height) => {
+        if (!cancelled && width > 0 && height > 0) {
+          setMediaAspect(clamp(width / height, MAX_PORTRAIT_ASPECT, MAX_LANDSCAPE_ASPECT));
+        }
+      },
+      () => {
+        // Keep the portrait default — a failed measurement shouldn't block layout.
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [images]);
+  const mediaHeight = SCREEN_WIDTH / mediaAspect;
+
   const [heartScale] = useState(() => new Animated.Value(1));
   const isFirstRender = useRef(true);
   useEffect(() => {
@@ -90,7 +121,7 @@ export function ExplorePostCard({
         <ProviderIdentity name={providerName} avatarUrl={providerAvatarUrl} size={30} />
       </Pressable>
 
-      <View style={styles.imageWrap}>
+      <View style={[styles.imageWrap, { aspectRatio: mediaAspect }]}>
         {images.length > 0 ? (
           <FlatList
             data={images}
@@ -103,7 +134,14 @@ export function ExplorePostCard({
               setActiveIndex(index);
             }}
             renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH / IMAGE_ASPECT }} contentFit="cover" transition={150} />
+              <Image
+                source={{ uri: item }}
+                style={{ width: SCREEN_WIDTH, height: mediaHeight }}
+                contentFit="cover"
+                transition={150}
+                cachePolicy="memory-disk"
+                recyclingKey={item}
+              />
             )}
           />
         ) : (
@@ -150,10 +188,8 @@ export function ExplorePostCard({
           </Pressable>
         </View>
 
+        {/* Provider name already reads from the header row above — repeating it inline here read as squished into the caption. */}
         <Text variant="body" tone="primary" numberOfLines={3} style={styles.caption}>
-          <Text variant="bodyMedium" tone="primary">
-            {providerName}{" "}
-          </Text>
           {caption}
         </Text>
 
@@ -188,7 +224,6 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: Spacing.md, marginBottom: Spacing.xs },
   imageWrap: {
     width: "100%",
-    aspectRatio: IMAGE_ASPECT,
   },
   placeholderContent: { flex: 1, alignItems: "center", justifyContent: "center" },
   bottomScrim: {

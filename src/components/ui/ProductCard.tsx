@@ -32,7 +32,7 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
       accessibilityLabel={`${listing.title}, ${formatMoney(listing.price)}, sold by ${listing.vendor.companyName}`}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: colors.surface, ...shadow.card },
+        { backgroundColor: colors.surface, borderColor: colors.border, ...shadow.card },
         width ? { width } : styles.flexCard,
         pressed && styles.pressed,
       ]}
@@ -95,6 +95,7 @@ const CARD_RADIUS = Radius.md;
 const styles = StyleSheet.create({
   card: {
     borderRadius: CARD_RADIUS,
+    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
   },
   flexCard: { flex: 1 },

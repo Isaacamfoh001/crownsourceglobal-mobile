@@ -166,10 +166,10 @@ const light: ThemeColors = {
 
 const dark: ThemeColors = {
   bg: "#171214",
-  surface: "#211A1D",
-  elevated: "#2A2124",
-  surfaceSubtle: "#251D20",
-  border: "#3B3033",
+  surface: "#241C1F",
+  elevated: "#302529",
+  surfaceSubtle: "#1D1719",
+  border: "#3D3236",
   borderPremium: "rgba(200, 164, 94, 0.30)",
   textPrimary: "#F7F1ED",
   textSecondary: "#BEB2B5",
