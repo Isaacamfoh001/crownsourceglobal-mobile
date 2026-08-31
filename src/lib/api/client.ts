@@ -64,7 +64,19 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   let response: Response;
   try {
     response = await fetch(url, { method, headers, body: requestBody, signal: options.signal });
-  } catch {
+  } catch (error) {
+    // `fetch` itself throwing (as opposed to resolving with a non-ok
+    // response) means no HTTP response was ever received — this really is
+    // a client-side network-layer failure (DNS/connection/ATS/timeout/a
+    // request the native layer couldn't send), never a case of
+    // misclassifying a validation/server error the backend actually
+    // returned (those go through the `!response.ok` branch below, which
+    // reads the real `code` off the JSON envelope). Logged only in dev —
+    // never the cookie/body, just enough to tell a real outage from a
+    // request that never made it off the device (M23.3).
+    if (__DEV__) {
+      console.warn(`[apiClient] fetch failed for ${method} ${path}:`, error instanceof Error ? error.message : String(error));
+    }
     throw new ApiError(
       "NETWORK_ERROR",
       "Could not reach the CrownSourceGlobal server. Check your connection and that EXPO_PUBLIC_API_BASE_URL points at a reachable backend.",

@@ -28,6 +28,7 @@ import {
   type TalentSkill,
   type TalentWorkStatus,
 } from "@/features/careers/types";
+import { prepareWorkPhoto } from "@/features/careers/prepareWorkPhoto";
 import { useSubmitTalentApplication, type TalentWorkSamplePhoto } from "@/features/careers/useSubmitTalentApplication";
 
 const SKILL_OPTIONS = Object.keys(TALENT_SKILL_LABELS) as TalentSkill[];
@@ -71,6 +72,7 @@ export default function CareersApplyScreen() {
 
   const [statement, setStatement] = useState("");
   const [photos, setPhotos] = useState<TalentWorkSamplePhoto[]>([]);
+  const [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   const [portfolioLinks, setPortfolioLinks] = useState<string[]>([""]);
   const [ownershipConfirmed, setOwnershipConfirmed] = useState(false);
 
@@ -88,12 +90,12 @@ export default function CareersApplyScreen() {
     skills.length > 0 &&
     (!skills.includes("OTHER") || otherSkillDescription.trim().length > 0) &&
     opportunityTypes.length > 0 &&
-    trimmedStatement.length > 0 &&
     trimmedStatement.length <= STATEMENT_MAX_LENGTH &&
     photos.length >= MIN_WORK_SAMPLES &&
     photos.length <= MAX_WORK_SAMPLES &&
     linksAllValid &&
     ownershipConfirmed &&
+    !isProcessingPhotos &&
     !submitMutation.isPending;
 
   const pickPhotos = async () => {
@@ -114,12 +116,16 @@ export default function CareersApplyScreen() {
     });
     if (result.canceled) return;
 
-    const picked: TalentWorkSamplePhoto[] = result.assets.map((asset) => ({
-      uri: asset.uri,
-      mimeType: asset.mimeType ?? "image/jpeg",
-      fileName: asset.fileName ?? `work-${Date.now()}.jpg`,
-    }));
-    setPhotos((current) => [...current, ...picked].slice(0, MAX_WORK_SAMPLES));
+    setIsProcessingPhotos(true);
+    try {
+      // Downscale/recompress before upload — see prepareWorkPhoto.ts's doc
+      // comment for why (a real, un-resized iPhone photo is what caused the
+      // M23.3 real-device "can't reach server" submission failure).
+      const picked = await Promise.all(result.assets.map(prepareWorkPhoto));
+      setPhotos((current) => [...current, ...picked].slice(0, MAX_WORK_SAMPLES));
+    } finally {
+      setIsProcessingPhotos(false);
+    }
   };
 
   const removePhoto = (index: number) => setPhotos((current) => current.filter((_, i) => i !== index));
@@ -148,7 +154,7 @@ export default function CareersApplyScreen() {
         opportunityTypes,
         willingToRelocate,
         preferredWorkLocation: preferredWorkLocation.trim() || undefined,
-        statement: trimmedStatement,
+        statement: trimmedStatement || undefined,
         portfolioLinks: cleanedLinks,
         ownershipConfirmed,
         workSamplePhotos: photos,
@@ -312,12 +318,12 @@ export default function CareersApplyScreen() {
 
           {/* About your work */}
           <Text variant="smallMedium" tone="gold" style={[styles.eyebrow, styles.sectionGap]}>
-            ABOUT YOUR WORK
+            ABOUT YOUR WORK (OPTIONAL)
           </Text>
           <TextInput
             value={statement}
             onChangeText={setStatement}
-            placeholder="Tell us a little about yourself and what you're looking for"
+            placeholder="Tell us a little about yourself and what you're looking for (optional)"
             placeholderTextColor={colors.textMuted}
             multiline
             maxLength={STATEMENT_MAX_LENGTH}
@@ -346,16 +352,17 @@ export default function CareersApplyScreen() {
             {photos.length < MAX_WORK_SAMPLES ? (
               <Pressable
                 onPress={pickPhotos}
+                disabled={isProcessingPhotos}
                 accessibilityRole="button"
                 accessibilityLabel="Add work photos"
-                style={[styles.addImageButton, { borderColor: colors.border, backgroundColor: colors.surfaceSubtle }]}
+                style={[styles.addImageButton, { borderColor: colors.border, backgroundColor: colors.surfaceSubtle }, isProcessingPhotos && styles.addImageButtonDisabled]}
               >
-                <Ionicons name="add" size={26} color={colors.textSecondary} />
+                <Ionicons name={isProcessingPhotos ? "hourglass-outline" : "add"} size={26} color={colors.textSecondary} />
               </Pressable>
             ) : null}
           </ScrollView>
           <Text variant="small" tone="muted">
-            {photos.length}/{MAX_WORK_SAMPLES} photos · at least {MIN_WORK_SAMPLES} required
+            {isProcessingPhotos ? "Preparing photos…" : `${photos.length}/${MAX_WORK_SAMPLES} photos · at least ${MIN_WORK_SAMPLES} required`}
           </Text>
 
           {/* Work links */}
@@ -489,6 +496,9 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
+  },
+  addImageButtonDisabled: {
+    opacity: 0.5,
   },
 
   linkRemoveButton: { padding: Spacing.xxs },
