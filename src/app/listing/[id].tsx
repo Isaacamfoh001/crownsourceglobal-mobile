@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Share, StyleSheet, View } from "react-native";
@@ -7,11 +8,17 @@ import { Text } from "@/components/ui/Text";
 import { AvailabilityBadge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
+import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { Radius, Spacing, TouchTarget } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatMoney } from "@/lib/format";
+import { resolveDisplayUnitPrice } from "@/lib/pricing";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import { useListingDetail } from "@/features/listing/useListingDetail";
+import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/features/cart/useCart";
+import { useAddToCart } from "@/features/cart/useCartMutations";
+import { promptSignInRequired } from "@/lib/auth/requireAuthPrompt";
 
 /**
  * Product Detail (M22.3 §10-15) — deep recomposition, not a dividers-only
@@ -26,6 +33,18 @@ export default function ListingDetailScreen() {
   const { colors } = useAppTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: listing, isPending, isError, error, refetch } = useListingDetail(id);
+  const { status: authStatus } = useAuth();
+  const cartQuery = useCart(authStatus === "SIGNED_IN");
+  const addToCart = useAddToCart();
+
+  const [quantity, setQuantity] = useState(1);
+  const [lastListingId, setLastListingId] = useState<string | undefined>(undefined);
+  if (listing && listing.id !== lastListingId) {
+    setLastListingId(listing.id);
+    setQuantity(listing.moq);
+  }
+
+  const [justAdded, setJustAdded] = useState(false);
 
   const metaLine = listing
     ? [
@@ -37,6 +56,27 @@ export default function ListingDetailScreen() {
         .filter(Boolean)
         .join("  ·  ")
     : "";
+
+  const maxQuantity = listing ? Math.min(listing.maxOq ?? listing.availableQuantity, listing.availableQuantity) : 0;
+  const isPurchasable = Boolean(listing) && listing!.availabilityStatus !== "OUT_OF_STOCK" && maxQuantity >= listing!.moq;
+  const displayUnitPrice = listing ? resolveDisplayUnitPrice(listing.price, listing.bulkPriceTiers, quantity) : null;
+
+  function handleAddToCart() {
+    if (!listing) return;
+    if (authStatus === "SIGNED_OUT") {
+      promptSignInRequired("add items to your cart", `/listing/${listing.id}`);
+      return;
+    }
+    addToCart.mutate(
+      { listingId: listing.id, quantity },
+      {
+        onSuccess: () => {
+          setJustAdded(true);
+          setTimeout(() => setJustAdded(false), 1800);
+        },
+      },
+    );
+  }
 
   return (
     <View style={[styles.flex, { backgroundColor: colors.bg }]}>
@@ -104,6 +144,29 @@ export default function ListingDetailScreen() {
                 {metaLine}
               </Text>
 
+              {isPurchasable && (
+                <View style={[styles.section, { borderTopColor: colors.border }]}>
+                  <View style={styles.quantityRow}>
+                    <View>
+                      <Text variant="sectionHeading" tone="primary">
+                        Quantity
+                      </Text>
+                      {displayUnitPrice && quantity > listing.moq && (
+                        <Text variant="small" tone="secondary" style={styles.quantityPriceHint}>
+                          {formatMoney(displayUnitPrice)} / unit
+                        </Text>
+                      )}
+                    </View>
+                    <QuantityStepper quantity={quantity} min={listing.moq} max={maxQuantity} onChange={setQuantity} />
+                  </View>
+                  {addToCart.isError && (
+                    <Text variant="small" tone="error" style={styles.quantityPriceHint}>
+                      {friendlyErrorMessage(addToCart.error)}
+                    </Text>
+                  )}
+                </View>
+              )}
+
               {listing.bulkPriceTiers.length > 0 && (
                 <View style={[styles.section, { borderTopColor: colors.border }]}>
                   <Text variant="sectionHeading" tone="primary" style={styles.sectionTitle}>
@@ -160,15 +223,23 @@ export default function ListingDetailScreen() {
       <SafeAreaView edges={["top"]} style={styles.headerOverlay} pointerEvents="box-none">
         <View style={styles.overlayRow}>
           <OverlayButton icon="chevron-back" onPress={() => router.back()} accessibilityLabel="Go back" />
-          {listing && (
+          <View style={styles.overlayRowRight}>
+            {listing && (
+              <OverlayButton
+                icon="share-outline"
+                onPress={() => {
+                  Share.share({ message: `${listing.title} — via CrownSourceGlobal` }).catch(() => {});
+                }}
+                accessibilityLabel="Share this product"
+              />
+            )}
             <OverlayButton
-              icon="share-outline"
-              onPress={() => {
-                Share.share({ message: `${listing.title} — via CrownSourceGlobal` }).catch(() => {});
-              }}
-              accessibilityLabel="Share this product"
+              icon="bag-handle-outline"
+              onPress={() => router.push("/cart")}
+              accessibilityLabel="View cart"
+              badge={authStatus === "SIGNED_IN" ? cartQuery.data?.itemCount : undefined}
             />
-          )}
+          </View>
         </View>
       </SafeAreaView>
 
@@ -177,23 +248,33 @@ export default function ListingDetailScreen() {
           <View style={styles.actionBarInner}>
             <View>
               <Text variant="caption" tone="muted">
-                PRICE
+                {quantity > 1 ? "TOTAL" : "PRICE"}
               </Text>
               <Text variant="price" tone="pink">
-                {formatMoney(listing.price)}
+                {displayUnitPrice ? formatMoney({ amount: (Number(displayUnitPrice.amount) * quantity).toFixed(2), currency: displayUnitPrice.currency }) : formatMoney(listing.price)}
               </Text>
             </View>
-            <View style={[styles.disabledCta, { borderColor: colors.border, backgroundColor: colors.surfaceSubtle }]}>
-              <Ionicons name="bag-handle-outline" size={16} color={colors.textMuted} />
-              <View>
+            {!isPurchasable ? (
+              <View style={[styles.disabledCta, { borderColor: colors.border, backgroundColor: colors.surfaceSubtle }]}>
+                <Ionicons name="bag-handle-outline" size={16} color={colors.textMuted} />
                 <Text variant="bodyMedium" tone="muted">
-                  Add to Cart
-                </Text>
-                <Text variant="caption" tone="muted">
-                  Coming soon
+                  Out of stock
                 </Text>
               </View>
-            </View>
+            ) : (
+              <Pressable
+                onPress={handleAddToCart}
+                disabled={addToCart.isPending}
+                accessibilityRole="button"
+                accessibilityLabel="Add to cart"
+                style={({ pressed }) => [styles.cta, { backgroundColor: justAdded ? colors.successSurface : colors.pink }, pressed && styles.ctaPressed]}
+              >
+                <Ionicons name={justAdded ? "checkmark" : "bag-handle-outline"} size={16} color={justAdded ? colors.success : colors.textOnAccent} />
+                <Text variant="bodyMedium" tone={justAdded ? "success" : "onAccent"}>
+                  {addToCart.isPending ? "Adding…" : justAdded ? "Added to cart" : "Add to Cart"}
+                </Text>
+              </Pressable>
+            )}
           </View>
         </SafeAreaView>
       )}
@@ -201,19 +282,35 @@ export default function ListingDetailScreen() {
   );
 }
 
-/** Small overlay icon button — deliberately not the shared IconButton (which uses the app's theme surface color): this floats on top of arbitrary product photography, so it always uses a fixed dark scrim + white icon for guaranteed legibility, independent of light/dark app theme. */
+/** Small overlay icon button — deliberately not the shared IconButton (which uses the app's theme surface color): this floats on top of arbitrary product photography, so it always uses a fixed dark scrim + white icon for guaranteed legibility, independent of light/dark app theme. `badge` (M25) shows a real cart-item count, never a fabricated one — omitted/0 renders no badge. */
 function OverlayButton({
   icon,
   onPress,
   accessibilityLabel,
+  badge,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   accessibilityLabel: string;
+  badge?: number;
 }) {
+  const hasBadge = typeof badge === "number" && badge > 0;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel} hitSlop={8} style={({ pressed }) => [styles.overlayButton, pressed && styles.overlayButtonPressed]}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={hasBadge ? `${accessibilityLabel}, ${badge} item${badge === 1 ? "" : "s"}` : accessibilityLabel}
+      hitSlop={8}
+      style={({ pressed }) => [styles.overlayButton, pressed && styles.overlayButtonPressed]}
+    >
       <Ionicons name={icon} size={19} color="#FFFFFF" />
+      {hasBadge && (
+        <View style={styles.overlayBadge}>
+          <Text variant="caption" tone="inverse" style={styles.overlayBadgeText}>
+            {badge > 9 ? "9+" : badge}
+          </Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -230,6 +327,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     marginHorizontal: Spacing.sm,
   },
+  overlayRowRight: { flexDirection: "row", gap: Spacing.xs },
   overlayButton: {
     width: TouchTarget,
     height: TouchTarget,
@@ -239,6 +337,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(20,16,24,0.42)",
   },
   overlayButtonPressed: { backgroundColor: "rgba(20,16,24,0.6)" },
+  overlayBadge: {
+    position: "absolute",
+    top: 3,
+    right: 3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#C13A65",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  overlayBadgeText: { fontSize: 9, lineHeight: 11, fontWeight: "700" },
   body: { padding: Spacing.md, gap: Spacing.xxs },
   eyebrow: { letterSpacing: 0.6 },
   title: { marginTop: 2 },
@@ -289,4 +400,15 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     borderWidth: 1,
   },
+  cta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: Spacing.lg,
+    height: 52,
+    borderRadius: Radius.pill,
+  },
+  ctaPressed: { opacity: 0.85 },
+  quantityRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: Spacing.sm },
+  quantityPriceHint: { marginTop: 2 },
 });

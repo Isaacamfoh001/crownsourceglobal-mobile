@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { File } from "expo-file-system";
 import { apiClient } from "@/lib/api/client";
 
 export type CreateServiceRequestInput = {
@@ -29,8 +30,14 @@ export function useCreateServiceRequest() {
       if (input.notes) form.append("notes", input.notes);
       if (input.quantity) form.append("quantity", String(input.quantity));
       if (input.referenceImage) {
-        // React Native's FormData accepts { uri, name, type } for a file part, not a real Blob/File.
-        form.append("referenceImage", { uri: input.referenceImage.uri, name: input.referenceImage.fileName, type: input.referenceImage.mimeType } as unknown as Blob);
+        // M24.1 — `expo-file-system`'s `File`, not the legacy RN `{ uri, name,
+        // type }` object: this app's global `fetch` is Expo's spec-compliant
+        // Winter fetch, whose FormData-to-multipart conversion only accepts a
+        // string, a real Blob, or an object with a working `.bytes()` method
+        // — the bare `{ uri, name, type }` shape throws "Unsupported
+        // FormDataPart implementation" on a physical device (see
+        // useSubmitTalentApplication.ts's doc comment for the full story).
+        form.append("referenceImage", new File(input.referenceImage.uri));
       }
       return apiClient.post<{ id: string }>("/api/v1/service-requests", { form });
     },

@@ -29,7 +29,13 @@ export function ErrorState({ title = "Something went wrong", message, onRetry }:
   );
 }
 
-export function EmptyState({ title, message, icon = "search-outline" }: StateViewProps & { icon?: keyof typeof Ionicons.glyphMap }) {
+export function EmptyState({
+  title,
+  message,
+  icon = "search-outline",
+  actionLabel,
+  onAction,
+}: StateViewProps & { icon?: keyof typeof Ionicons.glyphMap; actionLabel?: string; onAction?: () => void }) {
   const { colors } = useAppTheme();
   return (
     <View style={styles.container}>
@@ -42,6 +48,7 @@ export function EmptyState({ title, message, icon = "search-outline" }: StateVie
           {message}
         </Text>
       )}
+      {actionLabel && onAction ? <Button label={actionLabel} onPress={onAction} style={styles.button} /> : null}
     </View>
   );
 }

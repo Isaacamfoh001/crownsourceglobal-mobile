@@ -8,8 +8,11 @@ import { CategoryIconTile } from "@/components/ui/CategoryIconTile";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { SkeletonCardGrid } from "@/components/ui/Skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/StateViews";
+import { CartIcon } from "@/components/ui/CartIcon";
 import { Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/features/cart/useCart";
 import { useListings } from "@/features/shop/useListings";
 import { useCategories } from "@/features/categories/useCategories";
 import { getCategoryIcon } from "@/lib/categoryIcons";
@@ -33,6 +36,8 @@ const SEARCH_DEBOUNCE_MS = 400;
  */
 export default function ShopScreen() {
   const { colors } = useAppTheme();
+  const { status: authStatus } = useAuth();
+  const cartQuery = useCart(authStatus === "SIGNED_IN");
   const params = useLocalSearchParams<{ category?: string }>();
   const incomingCategory = typeof params.category === "string" ? params.category : undefined;
   const [searchInput, setSearchInput] = useState("");
@@ -70,9 +75,12 @@ export default function ShopScreen() {
   return (
     <SafeAreaView edges={["top"]} style={[styles.flex, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
-        <Text variant="sectionHeading" tone="primary">
-          Shop
-        </Text>
+        <View style={styles.titleRow}>
+          <Text variant="sectionHeading" tone="primary">
+            Shop
+          </Text>
+          <CartIcon onPress={() => router.push("/cart")} itemCount={authStatus === "SIGNED_IN" ? cartQuery.data?.itemCount : undefined} />
+        </View>
         <SearchField value={searchInput} onChangeText={setSearchInput} placeholder="Search products…" />
       </View>
 
@@ -159,6 +167,7 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs, gap: Spacing.xs },
+  titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   // Load-bearing: ScrollView defaults to flexGrow:1, which stretched this into the "massive gap" bug — see the M23.1 report.
   categoryRail: { flexGrow: 0, flexShrink: 0 },
   categoryRailContent: { paddingHorizontal: Spacing.md, paddingTop: Spacing.sm, gap: Spacing.sm },

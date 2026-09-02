@@ -67,6 +67,27 @@ export default function RootLayout() {
             <Stack.Screen name="beauty-services/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="beauty-services/request" options={{ presentation: "modal" }} />
             <Stack.Screen name="beauty-services/my-requests" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="sourcing/my-requests" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="sourcing/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="quotations/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="quotations/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="cart/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="checkout/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="checkout/[orderId]/payment" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="checkout/[orderId]/confirmation" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+            <Stack.Screen name="orders/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-onboarding/index" options={{ presentation: "modal" }} />
+            <Stack.Screen name="(vendor)" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-listings/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-listings/new" options={{ presentation: "modal" }} />
+            <Stack.Screen name="vendor-orders/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-finance/earnings/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-finance/settlements/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-finance/payout-destination" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-store" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-beauty-professional/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-beauty-professional/requests/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-explore-posts" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
           </Stack>
         </QueryClientProvider>

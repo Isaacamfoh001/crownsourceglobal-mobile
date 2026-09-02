@@ -118,7 +118,8 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
   const menuItems: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress?: () => void }[] = [
     { icon: "sparkles-outline", label: "Service requests", onPress: () => router.push("/beauty-services/my-requests") },
     { icon: "receipt-outline", label: "Orders" },
-    { icon: "earth-outline", label: "Sourcing requests" },
+    { icon: "earth-outline", label: "Sourcing requests", onPress: () => router.push("/sourcing/my-requests") },
+    { icon: "document-text-outline", label: "Quotations", onPress: () => router.push("/quotations") },
     { icon: "heart-outline", label: "Saved products" },
     { icon: "chatbubble-ellipses-outline", label: "Messages" },
   ];
@@ -172,21 +173,45 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
                 </View>
               ))}
             </View>
+            <Button label="Enter Vendor Mode" onPress={() => router.push("/(vendor)")} style={styles.vendorModeButton} fullWidth />
           </View>
         )}
 
         {!me.vendor.available && me.vendorApplication && (
           <View style={styles.section}>
-            <View style={[styles.groupedList, { backgroundColor: colors.surface }]}>
+            <Pressable onPress={() => router.push("/vendor-onboarding")} style={[styles.groupedList, { backgroundColor: colors.surface }]}>
               <View style={styles.groupedRow}>
                 <View style={[styles.listIcon, { backgroundColor: colors.goldSurface }]}>
                   <Ionicons name="time-outline" size={18} color={colors.goldStrong} />
                 </View>
-                <Text variant="body" tone="secondary">
+                <Text variant="body" tone="secondary" style={styles.flex}>
                   Vendor application {me.vendorApplication.status.toLowerCase().replace(/_/g, " ")}
                 </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
               </View>
-            </View>
+            </Pressable>
+          </View>
+        )}
+
+        {!me.vendor.available && !me.vendorApplication && (
+          <View style={styles.section}>
+            <Pressable
+              onPress={() => router.push("/vendor-onboarding")}
+              style={[styles.groupedList, styles.startSellingRow, { backgroundColor: colors.goldSurface, borderColor: colors.gold }]}
+            >
+              <View style={[styles.listIcon, { backgroundColor: colors.surface }]}>
+                <Ionicons name="storefront-outline" size={18} color={colors.goldStrong} />
+              </View>
+              <View style={styles.flex}>
+                <Text variant="bodyMedium" tone="primary">
+                  Start selling
+                </Text>
+                <Text variant="small" tone="secondary">
+                  Apply to become a CrownSourceGlobal vendor
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.goldStrong} />
+            </Pressable>
           </View>
         )}
 
@@ -249,6 +274,8 @@ const styles = StyleSheet.create({
   valueList: { alignSelf: "stretch", marginTop: Spacing.xl, gap: 0 },
   valueRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, paddingVertical: Spacing.sm },
   groupedList: { borderRadius: Radius.lg, overflow: "hidden" },
+  vendorModeButton: { marginTop: Spacing.sm },
+  startSellingRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, padding: Spacing.sm, borderWidth: 1 },
   groupedRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, padding: Spacing.sm },
   listIcon: {
     width: 32,

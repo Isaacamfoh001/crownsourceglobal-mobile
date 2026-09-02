@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { File } from "expo-file-system";
 import { apiClient } from "@/lib/api/client";
 
 export type ExplorePostImageInput = { uri: string; mimeType: string; fileName: string };
@@ -11,9 +12,14 @@ type CreateExplorePostInput = {
 
 /**
  * Mobile's one-shot create-and-submit flow (M21 §17) — `POST
- * /api/v1/explore-posts`, `multipart/form-data`. React Native's `fetch`
- * accepts a `{ uri, name, type }` object per file part directly (no manual
- * blob conversion needed) — see apiClient.post's `form` option.
+ * /api/v1/explore-posts`, `multipart/form-data`. Images are appended as
+ * `expo-file-system` `File` instances (M24.1) — NOT the legacy RN
+ * `{ uri, name, type }` object: this app's global `fetch` is Expo's
+ * spec-compliant Winter fetch, whose FormData-to-multipart conversion only
+ * accepts a string, a real Blob, or an object with a working `.bytes()`
+ * method — the bare `{ uri, name, type }` shape throws "Unsupported
+ * FormDataPart implementation" on a physical device (see
+ * useSubmitTalentApplication.ts's doc comment for the full story).
  */
 export function useCreateExplorePost() {
   const queryClient = useQueryClient();
@@ -24,8 +30,7 @@ export function useCreateExplorePost() {
       form.append("caption", caption);
       form.append("categoryId", categoryId);
       for (const image of images) {
-        // React Native's FormData accepts { uri, name, type } for a file part, not a real Blob/File.
-        form.append("images", { uri: image.uri, name: image.fileName, type: image.mimeType } as unknown as Blob);
+        form.append("images", new File(image.uri));
       }
       return apiClient.post<{ id: string }>("/api/v1/explore-posts", { form });
     },
