@@ -16,6 +16,7 @@ import { IconSize, Palette, Radius, Spacing, TouchTarget, type ThemeColors } fro
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useHome } from "@/features/home/useHome";
+import { useUnreadCount } from "@/features/notifications/useNotifications";
 import { getTimeOfDayGreeting } from "@/lib/greeting";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 
@@ -67,9 +68,10 @@ export default function HomeScreen() {
   // Real first name once signed in (M20.2 §15, via GET /api/v1/me — see
   // useAuth()); undefined while signed out or before /me resolves, which
   // correctly falls back to the greeting alone below. Never fabricated.
-  const { me } = useAuth();
+  const { status, me } = useAuth();
   const firstName = me?.user.name.trim().split(/\s+/)[0];
   const greeting = getTimeOfDayGreeting();
+  const unreadCountQuery = useUnreadCount(status === "SIGNED_IN");
 
   const goToShop = useCallback((categorySlug?: string) => {
     router.push({ pathname: "/(tabs)/shop", params: categorySlug ? { category: categorySlug } : {} });
@@ -94,7 +96,7 @@ export default function HomeScreen() {
         <View style={styles.headerRow}>
           <View style={styles.headerSideSpacer} />
           <AppLogo width={logoWidth} />
-          <NotificationBell colors={heroColors} />
+          <NotificationBell colors={heroColors} unreadCount={unreadCountQuery.data?.unreadCount} onPress={() => router.push("/notifications")} />
         </View>
 
         <View style={styles.greetingBlock}>

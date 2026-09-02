@@ -14,20 +14,19 @@ type NotificationBellProps = {
    */
   colors?: ThemeColors;
   /**
-   * Unread count from a future notifications API. There is no notifications
-   * backend/mobile integration yet (M19.2.1 scope), so every call site
-   * omits this today — never pass a fabricated number. Undefined/0 renders
-   * a plain bell with no badge.
+   * Real unread count from GET /api/v1/notifications/unread-count (M28) —
+   * see features/notifications/useNotifications.ts's useUnreadCount().
+   * Never a fabricated number. Undefined/0 renders a plain bell with no
+   * badge.
    */
   unreadCount?: number;
 };
 
 /**
  * Reusable notification affordance. Renders as a static (non-pressable)
- * icon until a real onPress destination exists — a Pressable that goes
- * nowhere is worse than an honest placeholder. Once the notifications
- * feature and `unreadCount` data source land, pass `onPress` to make it
- * interactive; the badge will start rendering itself from real data.
+ * icon until a real onPress destination is supplied — a Pressable that goes
+ * nowhere is worse than an honest placeholder. Home (M28) passes both
+ * `onPress` (→ /notifications) and `unreadCount`.
  */
 export function NotificationBell({ onPress, colors: colorsOverride, unreadCount }: NotificationBellProps) {
   const { colors: themeColors } = useAppTheme();

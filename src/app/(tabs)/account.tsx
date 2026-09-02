@@ -116,6 +116,7 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
   const initial = me.user.name.trim().charAt(0).toUpperCase() || "?";
 
   const menuItems: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress?: () => void }[] = [
+    { icon: "notifications-outline", label: "Notifications", onPress: () => router.push("/notifications") },
     { icon: "sparkles-outline", label: "Service requests", onPress: () => router.push("/beauty-services/my-requests") },
     { icon: "receipt-outline", label: "Orders", onPress: () => router.push("/orders") },
     { icon: "earth-outline", label: "Sourcing requests", onPress: () => router.push("/sourcing/my-requests") },
