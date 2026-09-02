@@ -117,7 +117,7 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
 
   const menuItems: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress?: () => void }[] = [
     { icon: "sparkles-outline", label: "Service requests", onPress: () => router.push("/beauty-services/my-requests") },
-    { icon: "receipt-outline", label: "Orders" },
+    { icon: "receipt-outline", label: "Orders", onPress: () => router.push("/orders") },
     { icon: "earth-outline", label: "Sourcing requests", onPress: () => router.push("/sourcing/my-requests") },
     { icon: "document-text-outline", label: "Quotations", onPress: () => router.push("/quotations") },
     { icon: "heart-outline", label: "Saved products" },

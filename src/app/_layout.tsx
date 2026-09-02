@@ -75,7 +75,9 @@ export default function RootLayout() {
             <Stack.Screen name="checkout/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="checkout/[orderId]/payment" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="checkout/[orderId]/confirmation" options={{ animation: "slide_from_right", gestureEnabled: false }} />
+            <Stack.Screen name="orders/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="orders/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="resolutions/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-onboarding/index" options={{ presentation: "modal" }} />
             <Stack.Screen name="(vendor)" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-listings/[id]" options={{ animation: "slide_from_right" }} />

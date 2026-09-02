@@ -359,10 +359,10 @@ export type DeliveryInfoInput = {
 };
 
 /**
- * `GET /api/v1/orders/:id` (M24) — deliberately minimal, backs only the
- * post-quote-acceptance confirmation screen (see lib/api/dto/orders.ts's
- * doc comment on the backend). Not a general Orders DTO — no vendor/
- * fulfilment breakdown; that's M25's scope.
+ * `GET /api/v1/orders/:id` (M24) — deliberately minimal subset, still
+ * returned (as a subset of OrderDetailDTO below) by the same route the M26
+ * full detail now serves — the checkout confirmation/payment screens only
+ * ever read these fields, so they keep working unchanged.
  */
 export type OrderSummaryDTO = {
   id: string;
@@ -372,6 +372,164 @@ export type OrderSummaryDTO = {
   total: number;
   currency: string;
   createdAt: string;
+};
+
+export type OrderDisplayStatus =
+  | "ORDER_CONFIRMED"
+  | "PREPARING"
+  | "COLLECTED"
+  | "IN_TRANSIT"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "ISSUE_UNDER_REVIEW"
+  | "RETURN_IN_PROGRESS"
+  | "REFUND_PROCESSING"
+  | "REFUNDED"
+  | "PARTIALLY_REFUNDED"
+  | "REPLACEMENT_IN_PROGRESS"
+  | "CANCELLED";
+
+/** `GET /api/v1/orders` row (M26) — mirrors toOrderListItemDTO exactly. */
+export type OrderListItemDTO = {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  status: string;
+  paymentStatus: string;
+  displayStatus: OrderDisplayStatus;
+  displayStatusLabel: string;
+  total: number;
+  currency: string;
+  itemCount: number;
+  vendorCount: number;
+  thumbnailUrl: string | null;
+};
+
+export type OrderLineItemDTO = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  vendor: { companyName: string; storefrontSlug: string } | null;
+  imageUrl: string | null;
+};
+
+export type OrderVendorGroupDTO = {
+  vendorName: string;
+  subtotal: number;
+  items: OrderLineItemDTO[];
+};
+
+export type OrderPackageDTO = {
+  fulfilmentId: string;
+  vendorName: string;
+  status: OrderDisplayStatus;
+  statusLabel: string;
+};
+
+export type OrderTrackingStepDTO = {
+  key: string;
+  label: string;
+  done: boolean;
+  current: boolean;
+  at: string | null;
+};
+
+export type OrderPackageTrackingDTO = {
+  fulfilmentId: string;
+  vendorName: string;
+  items: { id: string; description: string; quantity: number }[];
+  steps: OrderTrackingStepDTO[];
+  hasIssue: boolean;
+  customerConfirmedReceiptAt: string | null;
+  carrier: string | null;
+  trackingReference: string | null;
+};
+
+export type OrderCaseSummaryDTO = {
+  id: string;
+  caseNumber: string;
+  status: string;
+  statusLabel: string;
+  issueType: string;
+  createdAt: string;
+};
+
+export type DeliveryInfoDTO = {
+  recipientName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  region: string;
+  notes?: string;
+};
+
+/**
+ * `GET /api/v1/orders/:id` full detail (M26) — mirrors toOrderDetailDTO
+ * exactly, plus the `tracking`/`cases` fields the route composes alongside
+ * it. Superset of OrderSummaryDTO above.
+ */
+export type OrderDetailDTO = {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  status: string;
+  paymentStatus: string;
+  subtotal: number;
+  total: number;
+  currency: string;
+  deliveryInfo: DeliveryInfoDTO;
+  displayStatus: OrderDisplayStatus;
+  displayStatusLabel: string;
+  vendorGroups: OrderVendorGroupDTO[];
+  packages: OrderPackageDTO[];
+  latestPaymentStatus: string | null;
+  latestPayment: {
+    reference: string;
+    provider: string;
+    method: string;
+    network: string | null;
+    phoneMasked: string | null;
+    cardDisplay: { brand: string; last4: string } | null;
+    amount: number;
+    currency: string;
+    initiatedAt: string;
+  } | null;
+  tracking: OrderPackageTrackingDTO[];
+  cases: OrderCaseSummaryDTO[];
+};
+
+/** `GET /api/v1/resolutions/:id` (M26) — read-only case detail: what was reported, and the real refund/return/replacement outcome. Case CREATION from mobile is deliberately out of scope this milestone. */
+export type ResolutionCaseDetailDTO = {
+  id: string;
+  caseNumber: string;
+  status: string;
+  statusLabel: string;
+  issueType: string;
+  orderId: string;
+  orderNumber: string;
+  createdAt: string;
+  customerDescription: string;
+  customerSafeDecisionReason: string | null;
+  items: {
+    id: string;
+    description: string;
+    quantityAffected: number;
+    purchasedQuantity: number;
+    unitPrice: Money;
+    issueType: string;
+    requestedResolution: string | null;
+    approvedResolution: string | null;
+    approvedRefundAmount: Money | null;
+    replacementQuantity: number | null;
+  }[];
+  attachments: { id: string; filename: string; mimeType: string; isImage: boolean; url: string }[];
+  refunds: { id: string; amount: Money; status: string; approvedAt: string | null; processedAt: string | null }[];
+  returns: { id: string; status: string; method: string | null; trackingReference: string | null }[];
+  replacements: { id: string; quantity: number; replacementFulfilmentId: string | null }[];
+  resolvedAt: string | null;
 };
 
 /** `GET /api/v1/me/addresses` row — mirrors modules/addresses/types.ts's AddressView exactly. */
