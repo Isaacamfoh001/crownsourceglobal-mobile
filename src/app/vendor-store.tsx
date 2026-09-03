@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
@@ -11,7 +13,13 @@ import { ErrorState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useVendorModeGuard } from "@/hooks/useVendorModeGuard";
-import { useVendorStoreProfile, useUpdateVendorStoreProfile } from "@/features/vendor/useVendorStore";
+import {
+  useVendorStoreProfile,
+  useUpdateVendorStoreProfile,
+  useUploadVendorLogo,
+  useRemoveVendorLogo,
+} from "@/features/vendor/useVendorStore";
+import { prepareImage } from "@/lib/media/prepareImage";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 
 export default function VendorStoreSettingsScreen() {
@@ -19,6 +27,8 @@ export default function VendorStoreSettingsScreen() {
   const { ready } = useVendorModeGuard();
   const query = useVendorStoreProfile(ready);
   const update = useUpdateVendorStoreProfile();
+  const uploadLogo = useUploadVendorLogo();
+  const removeLogo = useRemoveVendorLogo();
 
   const [companyName, setCompanyName] = useState("");
   const [description, setDescription] = useState("");
@@ -50,6 +60,18 @@ export default function VendorStoreSettingsScreen() {
   }
 
   if (!ready) return null;
+
+  const pickLogo = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Photo access needed", "Allow photo library access in Settings to add a logo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.8 });
+    if (result.canceled || result.assets.length === 0) return;
+    const prepared = await prepareImage(result.assets[0], "vendor-logo");
+    uploadLogo.mutate(prepared);
+  };
 
   const onSave = () => {
     if (!companyName.trim() || update.isPending) return;
@@ -88,6 +110,36 @@ export default function VendorStoreSettingsScreen() {
           <ErrorState title="Couldn't load store settings" message={friendlyErrorMessage(query.error)} onRetry={() => query.refetch()} />
         ) : (
           <View style={styles.section}>
+            <Pressable onPress={pickLogo} style={styles.logoPicker}>
+              {query.data?.logoUrl ? (
+                <Image source={{ uri: query.data.logoUrl }} style={styles.logoImage} contentFit="cover" />
+              ) : (
+                <View style={[styles.logoPlaceholder, { borderColor: colors.border, backgroundColor: colors.surfaceSubtle }]}>
+                  <Ionicons name="camera-outline" size={22} color={colors.textSecondary} />
+                </View>
+              )}
+              <View>
+                <Text variant="smallMedium" tone="primary">
+                  {uploadLogo.isPending ? "Uploading…" : "Store logo"}
+                </Text>
+                <Text variant="small" tone="secondary">
+                  Tap to {query.data?.logoUrl ? "change" : "add"} a photo
+                </Text>
+              </View>
+            </Pressable>
+            {query.data?.logoUrl ? (
+              <Pressable onPress={() => removeLogo.mutate()} disabled={removeLogo.isPending}>
+                <Text variant="small" tone="error">
+                  {removeLogo.isPending ? "Removing…" : "Remove logo"}
+                </Text>
+              </Pressable>
+            ) : null}
+            {uploadLogo.isError ? (
+              <Text variant="small" tone="error">
+                {friendlyErrorMessage(uploadLogo.error)}
+              </Text>
+            ) : null}
+
             <TextField label="Store name" value={companyName} onChangeText={setCompanyName} />
             <View style={styles.fieldWrap}>
               <Text variant="smallMedium" tone="secondary">
@@ -140,6 +192,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   section: { padding: Spacing.md, gap: Spacing.sm, paddingBottom: Spacing.xxl },
   fieldWrap: { gap: Spacing.xxs },
+  logoPicker: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, marginBottom: Spacing.xs },
+  logoImage: { width: 56, height: 56, borderRadius: Radius.lg },
+  logoPlaceholder: { width: 56, height: 56, borderRadius: Radius.lg, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   multiline: { minHeight: 80, borderRadius: Radius.md, borderWidth: 1, padding: Spacing.sm, fontSize: 14, textAlignVertical: "top" },
   sectionHeading: { marginTop: Spacing.md },
   marginTop: { marginTop: Spacing.sm },

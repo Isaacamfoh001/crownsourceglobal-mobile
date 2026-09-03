@@ -26,6 +26,18 @@ const ITEMS: { icon: keyof typeof Ionicons.glyphMap; label: string; description:
     description: "Your published and pending posts",
     onPress: () => router.push("/vendor-explore-posts"),
   },
+  {
+    icon: "globe-outline",
+    label: "Sourcing requests",
+    description: "Requests CrownSourceGlobal has asked you to quote on",
+    onPress: () => router.push("/vendor-sourcing-requests"),
+  },
+  {
+    icon: "alert-circle-outline",
+    label: "Resolutions",
+    description: "Order issues affecting your items",
+    onPress: () => router.push("/vendor-resolutions"),
+  },
 ];
 
 /** Vendor Mode's "More" hub (M27 §6) — restrained by design, not every desktop admin surface (M27 §2). */

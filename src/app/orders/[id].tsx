@@ -122,6 +122,19 @@ function OrderDetailContent({ order }: { order: OrderDetailDTO }) {
         </View>
       )}
 
+      {order.status !== "PENDING_PAYMENT" && order.status !== "CANCELLED" && (
+        <Pressable
+          onPress={() => router.push({ pathname: "/resolutions/new", params: { orderId: order.id } })}
+          style={[styles.reportProblemRow, { borderColor: colors.border, backgroundColor: colors.surface }]}
+        >
+          <Ionicons name="alert-circle-outline" size={18} color={colors.textSecondary} />
+          <Text variant="bodyMedium" tone="secondary" style={styles.flex}>
+            Report a problem
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </Pressable>
+      )}
+
       <View style={styles.section}>
         <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
           ITEMS
@@ -329,6 +342,7 @@ const styles = StyleSheet.create({
   section: { gap: Spacing.sm },
   sectionIntro: { marginBottom: 2 },
   sectionLabel: { letterSpacing: 0.5 },
+  reportProblemRow: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1, padding: Spacing.md },
   card: { borderRadius: Radius.lg, borderWidth: 1, padding: Spacing.md, gap: 4 },
   trackingCard: { gap: Spacing.sm },
   trackingVendor: { marginBottom: 2 },

@@ -79,6 +79,7 @@ export default function RootLayout() {
             <Stack.Screen name="orders/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="notifications/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="resolutions/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="resolutions/new" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-onboarding/index" options={{ presentation: "modal" }} />
             <Stack.Screen name="(vendor)" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-listings/[id]" options={{ animation: "slide_from_right" }} />
@@ -91,6 +92,10 @@ export default function RootLayout() {
             <Stack.Screen name="vendor-beauty-professional/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-beauty-professional/requests/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-explore-posts" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-sourcing-requests/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-sourcing-requests/[id]" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-resolutions/index" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="vendor-resolutions/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
           </Stack>
         </QueryClientProvider>

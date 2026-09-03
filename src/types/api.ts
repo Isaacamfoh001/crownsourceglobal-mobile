@@ -308,6 +308,48 @@ export type SourcingRequestDetailDTO = {
   latestQuotation: QuotationRefDTO | null;
 };
 
+export type SourcingSolicitationStatus = "SENT" | "RESPONDED" | "CANNOT_FULFIL";
+
+/**
+ * `GET /api/v1/vendor/sourcing-requests` row (M25.2 API, M29.1 mobile UI) —
+ * mirrors toVendorSolicitationSummaryDTO exactly. Never carries customer
+ * identity/contact.
+ */
+export type VendorSolicitationSummaryDTO = {
+  id: string;
+  status: SourcingSolicitationStatus;
+  sentAt: string;
+  requestReference: string;
+  requestTitle: string;
+  quantity: number;
+  quantityUnit: string | null;
+};
+
+/** `GET /api/v1/vendor/sourcing-requests/:id` — mirrors toVendorSolicitationDetailDTO exactly. */
+export type VendorSolicitationDetailDTO = {
+  id: string;
+  status: SourcingSolicitationStatus;
+  sentAt: string;
+  respondedAt: string | null;
+  requestReference: string;
+  title: string;
+  description: string;
+  quantity: number;
+  quantityUnit: string | null;
+  specifications: Record<string, string> | null;
+  deliveryCountry: string;
+  deliveryRegion: string | null;
+  deliveryCity: string | null;
+  requiredByDate: string | null;
+  attachments: SourcingRequestAttachmentDTO[];
+  response: {
+    proposedQuantity: number | null;
+    unitPrice: Money | null;
+    leadTimeDays: number | null;
+    notes: string | null;
+  } | null;
+};
+
 export type QuotationEffectiveStatus = "ISSUED" | "ACCEPTED" | "EXPIRED";
 
 /** `GET /api/v1/quotations` row — mirrors toQuotationSummaryDTO exactly. */
@@ -530,6 +572,47 @@ export type ResolutionCaseDetailDTO = {
   returns: { id: string; status: string; method: string | null; trackingReference: string | null }[];
   replacements: { id: string; quantity: number; replacementFulfilmentId: string | null }[];
   resolvedAt: string | null;
+};
+
+/**
+ * `GET /api/v1/vendor/resolutions` row (M29.1) — mirrors
+ * toVendorCaseSummaryDTO exactly. Deliberately restricted (M9 §46): no
+ * customer identity/contact/description/decision/refund data.
+ */
+export type VendorResolutionCaseSummaryDTO = {
+  id: string;
+  caseNumber: string;
+  status: string;
+  statusLabel: string;
+  issueType: string;
+  fulfilmentId: string | null;
+  orderNumber: string;
+  createdAt: string;
+};
+
+/** `GET /api/v1/vendor/resolutions/:id` (M29.1) — mirrors toVendorCaseDetailDTO exactly. */
+export type VendorResolutionCaseDetailDTO = VendorResolutionCaseSummaryDTO & {
+  items: { description: string; quantityAffected: number }[];
+};
+
+export type CancellationEligibility = "SAFE" | "NEEDS_REVIEW" | "BLOCKED";
+
+/**
+ * `GET /api/v1/orders/:id/resolution-context` (M29.1) — mirrors
+ * toResolutionContextDTO exactly. Backs mobile's "Report a problem" entry
+ * point; the same context the web ReportProblemForm uses. Eligibility is
+ * server-computed — never re-derived client-side.
+ */
+export type OrderResolutionContextDTO = {
+  orderId: string;
+  orderNumber: string;
+  fulfilments: {
+    fulfilmentId: string;
+    vendorName: string;
+    status: string;
+    eligibility: CancellationEligibility;
+    items: { orderItemId: string; description: string; quantity: number; unitPrice: Money }[];
+  }[];
 };
 
 /** `GET /api/v1/me/addresses` row — mirrors modules/addresses/types.ts's AddressView exactly. */

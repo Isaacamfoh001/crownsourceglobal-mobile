@@ -87,6 +87,12 @@ const SERVICE_REQUEST_STATUS: Record<string, StatusInfo> = {
   CANCELLED: { label: "Cancelled", tone: "muted" },
 };
 
+const SOURCING_SOLICITATION_STATUS: Record<string, StatusInfo> = {
+  SENT: { label: "Awaiting your response", tone: "gold" },
+  RESPONDED: { label: "You responded", tone: "success" },
+  CANNOT_FULFIL: { label: "Marked cannot fulfil", tone: "muted" },
+};
+
 function resolve(map: Record<string, StatusInfo>, status: string): StatusInfo {
   return map[status] ?? { label: humanize(status), tone: "muted" };
 }
@@ -100,4 +106,5 @@ export const vendorStatus = {
   settlement: (status: string) => resolve(SETTLEMENT_STATUS, status),
   beautyProfile: (status: string) => resolve(BEAUTY_PROFILE_STATUS, status),
   serviceRequest: (status: string) => resolve(SERVICE_REQUEST_STATUS, status),
+  sourcingSolicitation: (status: string) => resolve(SOURCING_SOLICITATION_STATUS, status),
 };
