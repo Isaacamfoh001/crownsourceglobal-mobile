@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
@@ -10,6 +12,7 @@ import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useVendorModeGuard } from "@/hooks/useVendorModeGuard";
 import { useVendorResolutionDetail } from "@/features/vendor/useVendorResolutions";
+import { useStartVendorConversation } from "@/features/messaging/useVendorMessages";
 import { orderStatus } from "@/lib/orderStatus";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import type { VendorResolutionCaseDetailDTO } from "@/types/api";
@@ -22,9 +25,11 @@ function formatDate(iso: string): string {
  * Vendor Mode → Resolution case detail (M29.1). Same deliberately restricted
  * view as the web Vendor Portal (M9 §46) — only which of the vendor's own
  * items are affected and the case status, never customer identity/contact/
- * description/decision/refund amount. Messaging is out of scope for this
- * milestone (M30) — the "Message CrownSourceGlobal" concept is preserved as
- * an honest, disabled entry point rather than invented here.
+ * description/decision/refund amount. "Message CrownSourceGlobal" (M30) now
+ * wires into the real messaging system — `messagingService
+ * .startOrContinueVendorContextual` with this case's id as
+ * `contextResolutionCaseId` — the exact same call the web Vendor Portal's
+ * `startVendorResolutionConversationAction` makes.
  */
 export default function VendorResolutionDetailScreen() {
   const { colors } = useAppTheme();
@@ -53,15 +58,27 @@ export default function VendorResolutionDetailScreen() {
       ) : query.isError || !query.data ? (
         <ErrorState title="Couldn't load this case" message={friendlyErrorMessage(query.error)} onRetry={() => query.refetch()} />
       ) : (
-        <CaseDetailContent detail={query.data} />
+        <CaseDetailContent detail={query.data} caseId={id} />
       )}
     </Screen>
   );
 }
 
-function CaseDetailContent({ detail }: { detail: VendorResolutionCaseDetailDTO }) {
+function CaseDetailContent({ detail, caseId }: { detail: VendorResolutionCaseDetailDTO; caseId: string }) {
   const { colors } = useAppTheme();
   const info = orderStatus.resolutionCase(detail.status);
+  const startMutation = useStartVendorConversation();
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  function handleSend() {
+    const body = draft.trim();
+    if (!body || startMutation.isPending) return;
+    startMutation.mutate(
+      { contextResolutionCaseId: caseId, body },
+      { onSuccess: (result) => router.push(`/vendor-messages/${result.conversationId}`) },
+    );
+  }
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
@@ -102,15 +119,40 @@ function CaseDetailContent({ detail }: { detail: VendorResolutionCaseDetailDTO }
         <Text variant="small" tone="muted">
           If CrownSourceGlobal needs information from you about this, it&apos;ll appear here.
         </Text>
-        <Pressable
-          onPress={() => Alert.alert("Coming soon", "In-app messaging is coming in a future update. For now, CrownSourceGlobal will reach you by email if needed.")}
-          style={[styles.messageButton, { borderColor: colors.border }]}
-        >
-          <Ionicons name="chatbubble-outline" size={16} color={colors.textMuted} />
-          <Text variant="small" tone="muted">
-            Message CrownSourceGlobal (coming soon)
-          </Text>
-        </Pressable>
+
+        {!composerOpen ? (
+          <Pressable onPress={() => setComposerOpen(true)} style={[styles.messageButton, { borderColor: colors.border }]}>
+            <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
+            <Text variant="small" tone="secondary">
+              Message CrownSourceGlobal
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.composer}>
+            {startMutation.isError ? (
+              <Text variant="small" tone="error">
+                {friendlyErrorMessage(startMutation.error)}
+              </Text>
+            ) : null}
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="Ask CrownSourceGlobal about this case…"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              editable={!startMutation.isPending}
+              style={[styles.composerInput, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.bg }]}
+            />
+            <View style={styles.composerActions}>
+              <Button label={startMutation.isPending ? "Sending…" : "Send"} onPress={handleSend} disabled={!draft.trim() || startMutation.isPending} style={styles.composerSend} />
+              <Pressable onPress={() => setComposerOpen(false)} disabled={startMutation.isPending} accessibilityRole="button">
+                <Text variant="smallMedium" tone="muted">
+                  Cancel
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -127,4 +169,8 @@ const styles = StyleSheet.create({
   card: { borderRadius: Radius.lg, borderWidth: 1, padding: Spacing.md, gap: Spacing.xs },
   itemRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: Spacing.sm, paddingBottom: Spacing.sm },
   messageButton: { flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginTop: Spacing.xs, paddingVertical: Spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
+  composer: { gap: Spacing.xs, marginTop: Spacing.xs },
+  composerInput: { minHeight: 44, maxHeight: 100, borderWidth: 1, borderRadius: Radius.md, paddingHorizontal: Spacing.sm, paddingVertical: Spacing.sm, fontSize: 15 },
+  composerActions: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
+  composerSend: { alignSelf: "flex-start" },
 });

@@ -38,6 +38,12 @@ const ITEMS: { icon: keyof typeof Ionicons.glyphMap; label: string; description:
     description: "Order issues affecting your items",
     onPress: () => router.push("/vendor-resolutions"),
   },
+  {
+    icon: "chatbubble-ellipses-outline",
+    label: "Messages",
+    description: "Conversations with CrownSourceGlobal",
+    onPress: () => router.push("/vendor-messages"),
+  },
 ];
 
 /** Vendor Mode's "More" hub (M27 §6) — restrained by design, not every desktop admin surface (M27 §2). */

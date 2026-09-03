@@ -15,12 +15,17 @@ import type { Href } from "expo-router";
  * intentional mapping, never a blind pass-through.
  *
  * Returns `null` when the backend event has no corresponding native screen
- * yet (vendor messaging, vendor resolutions, vendor sourcing solicitations,
- * buyer/vendor messaging, and every /admin/* path — there is no admin
- * surface in this app at all). The notification itself must still render
- * and be markable read; only tap-to-navigate is unavailable — see the
- * Notifications screen, which disables the row's chevron/press affordance
- * when this returns null.
+ * yet (vendor sourcing solicitations, and every /admin/* path — there is no
+ * admin surface in this app at all). The notification itself must still
+ * render and be markable read; only tap-to-navigate is unavailable — see
+ * the Notifications screen, which disables the row's chevron/press
+ * affordance when this returns null.
+ *
+ * `STAFF_REPLY` (customer)/`VENDOR_STAFF_REPLY` (vendor) — the two
+ * messaging notification types — are covered by the `/account/messages/:id`
+ * and `/vendor/portal/messages/:id` entries in ID_ROUTES below (M30);
+ * `ADMIN_NEW_MESSAGE`'s `/admin/messages/:id` targetUrl intentionally has
+ * no entry — admin stays web-only.
  */
 export function resolveNotificationDestination(targetUrl: string): Href | null {
   for (const { pattern, build } of STATIC_ROUTES) {
@@ -52,11 +57,13 @@ const ID_ROUTES: { pattern: RegExp; build: (id: string) => Href }[] = [
   { pattern: /^\/vendor\/portal\/orders\/([^/]+)$/, build: (id) => `/vendor-orders/${id}` as Href },
   { pattern: /^\/vendor\/portal\/finance\/settlements\/([^/]+)$/, build: (id) => `/vendor-finance/settlements/${id}` as Href },
   { pattern: /^\/vendor\/portal\/beauty-professional\/requests\/([^/]+)$/, build: (id) => `/vendor-beauty-professional/requests/${id}` as Href },
+  { pattern: /^\/vendor\/portal\/messages\/([^/]+)$/, build: (id) => `/vendor-messages/${id}` as Href },
   // Customer
   { pattern: /^\/account\/orders\/([^/]+)$/, build: (id) => `/orders/${id}` as Href },
   { pattern: /^\/account\/quotes\/([^/]+)$/, build: (id) => `/quotations/${id}` as Href },
   { pattern: /^\/account\/sourcing\/([^/]+)$/, build: (id) => `/sourcing/${id}` as Href },
   { pattern: /^\/account\/resolutions\/([^/]+)$/, build: (id) => `/resolutions/${id}` as Href },
+  { pattern: /^\/account\/messages\/([^/]+)$/, build: (id) => `/messages/${id}` as Href },
 ];
 
 /**

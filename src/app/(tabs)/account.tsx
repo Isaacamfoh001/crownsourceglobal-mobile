@@ -122,7 +122,7 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
     { icon: "earth-outline", label: "Sourcing requests", onPress: () => router.push("/sourcing/my-requests") },
     { icon: "document-text-outline", label: "Quotations", onPress: () => router.push("/quotations") },
     { icon: "heart-outline", label: "Saved products" },
-    { icon: "chatbubble-ellipses-outline", label: "Messages" },
+    { icon: "chatbubble-ellipses-outline", label: "Messages", onPress: () => router.push("/messages") },
   ];
 
   return (

@@ -1033,3 +1033,37 @@ export type VendorStoreProfileDTO = {
   pickupHours: string | null;
   pickupNotes: string | null;
 };
+
+/**
+ * M30 — mirrors `modules/messaging/types.ts`'s `ConversationSummary`/
+ * `ConversationDetail`/`MessageView` exactly, via `lib/api/dto/messaging.ts`.
+ * Same shape for the customer (`/api/v1/messages*`) and vendor
+ * (`/api/v1/vendor/messages*`) surfaces — only which endpoint a request
+ * hits determines which participant's conversations come back. No unread
+ * flag: the existing Conversation/Message schema has no per-participant
+ * read tracking to expose (unlike Notification's `readAt`).
+ */
+export type MessagingContextType = "LISTING" | "VENDOR" | "ORDER" | "SOURCING_REQUEST" | "RESOLUTION_CASE" | "GENERAL";
+
+export type ConversationSummaryDTO = {
+  id: string;
+  participantType: "CUSTOMER" | "VENDOR";
+  contextType: MessagingContextType;
+  status: "OPEN" | "CLOSED";
+  contextLabel: string;
+  lastMessage: string | null;
+  updatedAt: string;
+  createdAt: string;
+};
+
+export type MessageDTO = {
+  id: string;
+  body: string;
+  senderIsStaff: boolean;
+  senderName: string;
+  createdAt: string;
+};
+
+export type ConversationDetailDTO = ConversationSummaryDTO & {
+  messages: MessageDTO[];
+};
