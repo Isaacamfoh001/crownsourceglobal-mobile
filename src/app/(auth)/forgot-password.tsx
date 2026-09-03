@@ -35,14 +35,19 @@ export default function ForgotPasswordScreen() {
     }
 
     setSubmitting(true);
-    const { error: requestError } = await authClient.requestPasswordReset({ email: trimmedEmail });
-    setSubmitting(false);
+    try {
+      const { error: requestError } = await authClient.requestPasswordReset({ email: trimmedEmail });
 
-    if (requestError) {
-      setError(friendlyAuthErrorMessage(requestError));
-      return;
+      if (requestError) {
+        setError(friendlyAuthErrorMessage(requestError));
+        return;
+      }
+      setSent(true);
+    } catch {
+      setError("Could not reach the CrownSourceGlobal server. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
-    setSent(true);
   };
 
   if (sent) {

@@ -41,34 +41,44 @@ export default function SignInScreen() {
     }
 
     setSubmitting(true);
-    const { error: signInError } = await authClient.signIn.email({ email: trimmedEmail, password });
-    setSubmitting(false);
+    try {
+      const { error: signInError } = await authClient.signIn.email({ email: trimmedEmail, password });
 
-    if (signInError) {
-      if (isEmailNotVerifiedError(signInError)) {
-        setUnverifiedEmail(trimmedEmail);
-        setError("Please verify your email before signing in.");
+      if (signInError) {
+        if (isEmailNotVerifiedError(signInError)) {
+          setUnverifiedEmail(trimmedEmail);
+          setError("Please verify your email before signing in.");
+          return;
+        }
+        setError(friendlyAuthErrorMessage(signInError));
         return;
       }
-      setError(friendlyAuthErrorMessage(signInError));
-      return;
-    }
 
-    goToDestination();
+      goToDestination();
+    } catch {
+      setError("Could not reach the CrownSourceGlobal server. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const onGoogleSignIn = async () => {
     if (googleSubmitting) return;
     setError(null);
     setGoogleSubmitting(true);
-    const { error: googleError } = await authClient.signIn.social({ provider: "google", callbackURL: "/" });
-    setGoogleSubmitting(false);
-    if (googleError) {
-      setError(friendlyAuthErrorMessage(googleError));
+    try {
+      const { error: googleError } = await authClient.signIn.social({ provider: "google", callbackURL: "/" });
+      if (googleError) {
+        setError(friendlyAuthErrorMessage(googleError));
+      }
+      // A successful native Google sign-in resolves the shared session store
+      // directly (see src/lib/auth/client.ts) — the root layout/tabs re-render
+      // signed-in on their own, no manual navigation needed here.
+    } catch {
+      setError("Could not reach the CrownSourceGlobal server. Check your connection and try again.");
+    } finally {
+      setGoogleSubmitting(false);
     }
-    // A successful native Google sign-in resolves the shared session store
-    // directly (see src/lib/auth/client.ts) — the root layout/tabs re-render
-    // signed-in on their own, no manual navigation needed here.
   };
 
   return (

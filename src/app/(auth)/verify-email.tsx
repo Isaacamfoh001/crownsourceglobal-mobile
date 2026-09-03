@@ -40,10 +40,15 @@ export default function VerifyEmailScreen() {
     if (!email || resending || cooldown > 0) return;
     setResending(true);
     setNotice(null);
-    const { error } = await authClient.sendVerificationEmail({ email });
-    setResending(false);
-    setCooldown(RESEND_COOLDOWN_SECONDS);
-    setNotice(error ? "Couldn't resend right now. Please try again shortly." : "Verification email sent.");
+    try {
+      const { error } = await authClient.sendVerificationEmail({ email });
+      setNotice(error ? "Couldn't resend right now. Please try again shortly." : "Verification email sent.");
+    } catch {
+      setNotice("Couldn't resend right now. Please try again shortly.");
+    } finally {
+      setResending(false);
+      setCooldown(RESEND_COOLDOWN_SECONDS);
+    }
   };
 
   return (

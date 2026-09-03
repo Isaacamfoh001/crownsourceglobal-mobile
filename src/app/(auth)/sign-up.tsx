@@ -43,19 +43,24 @@ export default function SignUpScreen() {
     }
 
     setSubmitting(true);
-    const { error: signUpError } = await authClient.signUp.email({
-      name: trimmedName,
-      email: trimmedEmail,
-      password,
-    });
-    setSubmitting(false);
+    try {
+      const { error: signUpError } = await authClient.signUp.email({
+        name: trimmedName,
+        email: trimmedEmail,
+        password,
+      });
 
-    if (signUpError) {
-      setError(friendlyAuthErrorMessage(signUpError));
-      return;
+      if (signUpError) {
+        setError(friendlyAuthErrorMessage(signUpError));
+        return;
+      }
+
+      router.replace({ pathname: "/(auth)/verify-email", params: { email: trimmedEmail } });
+    } catch {
+      setError("Could not reach the CrownSourceGlobal server. Check your connection and try again.");
+    } finally {
+      setSubmitting(false);
     }
-
-    router.replace({ pathname: "/(auth)/verify-email", params: { email: trimmedEmail } });
   };
 
   return (
