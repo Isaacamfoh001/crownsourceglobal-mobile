@@ -1,16 +1,18 @@
 import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { ActivityIndicator, Pressable, SectionList, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Linking, Pressable, SectionList, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/StateViews";
 import { Radius, Spacing, IconSize } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead } from "@/features/notifications/useNotifications";
+import { usePushPermission } from "@/features/push/usePushPermission";
 import { resolveNotificationDestination } from "@/features/notifications/destination";
 import { notificationIcon, isToday } from "@/features/notifications/presentation";
 import { formatRelativeTime } from "@/lib/format";
@@ -30,6 +32,7 @@ export default function NotificationsScreen() {
   const feedQuery = useNotifications(status === "SIGNED_IN");
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
+  const pushPermission = usePushPermission();
 
   const rows = useMemo<NotificationDTO[]>(() => feedQuery.data?.pages.flatMap((page) => page.rows) ?? [], [feedQuery.data]);
   const hasUnread = rows.some((row) => !row.readAt);
@@ -102,6 +105,15 @@ export default function NotificationsScreen() {
           refreshing={feedQuery.isRefetching && !feedQuery.isFetchingNextPage}
           onRefresh={() => feedQuery.refetch()}
           stickySectionHeadersEnabled={false}
+          ListHeaderComponent={
+            !pushPermission.unavailable && pushPermission.permission && pushPermission.permission !== "granted" ? (
+              <PushPermissionBanner
+                denied={pushPermission.permission === "denied"}
+                isRequesting={pushPermission.isRequesting}
+                onEnable={pushPermission.enable}
+              />
+            ) : null
+          }
           renderSectionHeader={({ section }) => (
             <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
               {section.title.toUpperCase()}
@@ -155,12 +167,48 @@ function NotificationRow({ notification, onPress }: { notification: Notification
   );
 }
 
+/**
+ * "Turn on notifications" (M31 §8) — a plain card in the inbox's own list,
+ * not a modal or a launch-time OS-dialog ambush. `denied` means the user
+ * already said no once; iOS/Android won't re-show their own prompt after
+ * that, so the only honest next step is deep-linking to system Settings
+ * rather than calling `enable()` again (which would just silently no-op).
+ */
+function PushPermissionBanner({ denied, isRequesting, onEnable }: { denied: boolean; isRequesting: boolean; onEnable: () => void }) {
+  const { colors } = useAppTheme();
+
+  return (
+    <View style={[styles.permissionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Ionicons name="notifications-outline" size={IconSize.md} color={colors.goldStrong} />
+      <View style={styles.flex}>
+        <Text variant="bodyMedium" tone="primary">
+          Turn on notifications
+        </Text>
+        <Text variant="small" tone="secondary">
+          {denied
+            ? "Notifications are off for CrownSourceGlobal. Turn them on in Settings to get updates on orders, messages, and more."
+            : "Get notified about orders, messages, and requests as they happen."}
+        </Text>
+      </View>
+      <Button
+        label={denied ? "Settings" : isRequesting ? "…" : "Turn on"}
+        variant="outline"
+        onPress={denied ? () => Linking.openSettings() : onEnable}
+        disabled={isRequesting}
+        style={styles.permissionButton}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   headerSpacer: { width: 44 },
   loadingBlock: { paddingHorizontal: Spacing.md, marginTop: Spacing.md, gap: Spacing.sm },
   listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xxl },
+  permissionCard: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.md, marginBottom: Spacing.sm },
+  permissionButton: { flexShrink: 0 },
   sectionLabel: { paddingTop: Spacing.md, paddingBottom: Spacing.xs, letterSpacing: 0.5 },
   footerLoader: { marginVertical: Spacing.md },
   pressed: { opacity: 0.85 },

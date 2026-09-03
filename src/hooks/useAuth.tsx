@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession, signOut as authSignOut } from "@/lib/auth/client";
 import { useMe } from "@/features/auth/useMe";
+import { unregisterCurrentDevice } from "@/lib/push/registration";
 
 export type AuthStatus = "LOADING" | "SIGNED_OUT" | "SIGNED_IN";
 
@@ -20,7 +21,17 @@ export function useAuth() {
 
   const status: AuthStatus = isPending ? "LOADING" : isSignedIn ? "SIGNED_IN" : "SIGNED_OUT";
 
+  /**
+   * Unregisters this device's push token BEFORE clearing the session
+   * (M31 §11/§13 — a previous account's private pushes must never keep
+   * reaching a device after sign-out, including the "same device, next
+   * account" case). Must run first: it's an authenticated call that needs
+   * the session cookie `authSignOut()` is about to clear. Best-effort —
+   * `unregisterCurrentDevice` swallows its own failures — so a flaky
+   * network never blocks sign-out itself.
+   */
   async function signOut() {
+    await unregisterCurrentDevice();
     await authSignOut();
     queryClient.removeQueries({ queryKey: ["me"] });
   }

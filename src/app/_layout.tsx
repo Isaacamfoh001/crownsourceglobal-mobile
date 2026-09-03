@@ -10,6 +10,8 @@ import { queryClient } from "@/lib/api/query-client";
 import { ENV } from "@/lib/env";
 import { Palette, Spacing, Type } from "@/constants/theme";
 import { AppThemeProvider, useAppTheme } from "@/hooks/useAppTheme";
+import { PushSessionBridge } from "@/features/push/PushSessionBridge";
+import "@/lib/push/handler";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -57,6 +59,7 @@ export default function RootLayout() {
       <ThemedStatusBar />
       <SafeAreaProvider onLayout={onLayoutRootView}>
         <QueryClientProvider client={queryClient}>
+          <PushSessionBridge />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="listing/[id]" options={{ animation: "slide_from_right" }} />
