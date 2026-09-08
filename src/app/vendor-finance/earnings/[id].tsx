@@ -69,8 +69,8 @@ export default function VendorEarningDetailScreen() {
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Row label="Item" value={earning.orderItemDescription} />
         <Row label="Quantity" value={String(earning.quantity)} />
-        <Row label="Fulfilment status" value={earning.fulfilmentStatus} />
-        {earning.eligibleAt ? <Row label="Eligible" value={new Date(earning.eligibleAt).toLocaleDateString()} /> : null}
+        <Row label="Order status" value={vendorStatus.fulfilment(earning.fulfilmentStatus).label} />
+        {earning.eligibleAt ? <Row label="Available from" value={new Date(earning.eligibleAt).toLocaleDateString()} /> : null}
       </View>
 
       {earning.adjustments.length > 0 ? (

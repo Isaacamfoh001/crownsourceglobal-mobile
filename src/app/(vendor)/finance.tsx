@@ -45,7 +45,7 @@ export default function VendorFinanceScreen() {
     <Screen>
       <View style={styles.header}>
         <Text variant="screenTitle" tone="primary">
-          Finance
+          Earnings
         </Text>
         <Pressable onPress={() => router.push("/vendor-finance/payout-destination")} accessibilityRole="button" accessibilityLabel="Payout destination">
           <Ionicons name="card-outline" size={22} color={colors.textPrimary} />
@@ -61,9 +61,16 @@ export default function VendorFinanceScreen() {
       ) : (
         <View style={styles.overviewGrid}>
           <OverviewTile label="Available for payout" value={formatMoney(overviewQuery.data.availableForSettlement)} emphasis />
-          <OverviewTile label="Pending" value={formatMoney(overviewQuery.data.pending)} />
-          <OverviewTile label="Waiting period" value={formatMoney(overviewQuery.data.waitingPeriod)} />
-          <OverviewTile label="On hold" value={formatMoney(overviewQuery.data.onHold)} />
+          {/* M32.3 §15 — PENDING/WAITING_PERIOD/ON_HOLD all mean "still waiting to be paid" to a vendor; CrownSource Admin keeps the granular breakdown, this is presentation-only. */}
+          <OverviewTile
+            label="Money waiting"
+            value={formatMoney({
+              amount: String(
+                Number(overviewQuery.data.pending.amount) + Number(overviewQuery.data.waitingPeriod.amount) + Number(overviewQuery.data.onHold.amount),
+              ),
+              currency: overviewQuery.data.pending.currency,
+            })}
+          />
           <OverviewTile label="Paid to date" value={formatMoney(overviewQuery.data.paidToDate)} />
         </View>
       )}
@@ -72,7 +79,7 @@ export default function VendorFinanceScreen() {
         {(["earnings", "settlements"] as const).map((t) => (
           <Pressable key={t} onPress={() => setTab(t)} style={[styles.tabChip, { borderColor: tab === t ? colors.pink : colors.border, backgroundColor: tab === t ? colors.pinkSurface : "transparent" }]}>
             <Text variant="bodyMedium" tone={tab === t ? "pink" : "secondary"}>
-              {t === "earnings" ? "Earnings" : "Settlements"}
+              {t === "earnings" ? "Earnings" : "Payouts"}
             </Text>
           </Pressable>
         ))}
@@ -116,9 +123,9 @@ export default function VendorFinanceScreen() {
         ) : settlementsQuery.isPending ? (
           <Skeleton height={64} radius={Radius.lg} />
         ) : settlementsQuery.isError ? (
-          <ErrorState title="Couldn't load settlements" message={friendlyErrorMessage(settlementsQuery.error)} onRetry={() => settlementsQuery.refetch()} />
+          <ErrorState title="Couldn't load payouts" message={friendlyErrorMessage(settlementsQuery.error)} onRetry={() => settlementsQuery.refetch()} />
         ) : settlements.length === 0 ? (
-          <EmptyState icon="receipt-outline" title="No settlements yet" />
+          <EmptyState icon="receipt-outline" title="No payouts yet" />
         ) : (
           settlements.map((settlement) => {
             const info = vendorStatus.settlement(settlement.status);

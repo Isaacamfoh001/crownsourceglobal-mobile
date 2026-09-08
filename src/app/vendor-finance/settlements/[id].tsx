@@ -42,7 +42,7 @@ export default function VendorSettlementDetailScreen() {
   if (query.isError || !query.data) {
     return (
       <Screen>
-        <ErrorState title="Couldn't load this settlement" message={friendlyErrorMessage(query.error)} onRetry={() => query.refetch()} />
+        <ErrorState title="Couldn't load this payout" message={friendlyErrorMessage(query.error)} onRetry={() => query.refetch()} />
       </Screen>
     );
   }
@@ -69,7 +69,7 @@ export default function VendorSettlementDetailScreen() {
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Row label="Gross payable" value={formatMoney(settlement.grossPayable)} />
+        <Row label="Total earned" value={formatMoney(settlement.grossPayable)} />
         <Row label="Adjustments" value={formatMoney(settlement.adjustmentTotal)} />
         {settlement.payoutMethod ? <Row label="Payout method" value={settlement.payoutMethod} /> : null}
         {destinationSummary(settlement.destination) ? <Row label="Destination" value={destinationSummary(settlement.destination) ?? ""} /> : null}

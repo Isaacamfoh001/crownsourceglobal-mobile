@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { Screen } from "@/components/ui/Screen";
@@ -8,6 +7,7 @@ import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AttachmentImage } from "@/components/ui/AttachmentImage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
@@ -17,7 +17,6 @@ import { useVendorSolicitationDetail, useRespondToSolicitation } from "@/feature
 import { vendorStatus } from "@/lib/vendorStatus";
 import { formatMoney } from "@/lib/format";
 import { friendlyErrorMessage } from "@/lib/api/errors";
-import { attachmentImageSource } from "@/lib/media/attachmentImageSource";
 import type { VendorSolicitationDetailDTO } from "@/types/api";
 
 function formatDate(iso: string): string {
@@ -78,9 +77,9 @@ function SolicitationDetailContent({ detail }: { detail: VendorSolicitationDetai
       {imageAttachments.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gallery}>
           {imageAttachments.map((attachment) => (
-            <Image
+            <AttachmentImage
               key={attachment.id}
-              source={attachmentImageSource(attachment.url)}
+              url={attachment.url}
               style={[styles.galleryImage, { backgroundColor: colors.surfaceSubtle }]}
               contentFit="cover"
             />

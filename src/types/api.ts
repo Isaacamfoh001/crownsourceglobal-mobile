@@ -115,14 +115,19 @@ export type CategoriesResponseDTO = {
   categories: CategoryWithChildrenDTO[];
 };
 
+/** M32.3 — `sellerType`/`beautyProfessional` are UI-only Experience Mode eligibility signals, never authorization. */
 export type VendorMembershipDTO = {
   vendorId: string;
   role: string;
   companyName: string;
   verificationStatus: string;
+  sellerType: string | null;
+  beautyProfessional: { available: boolean };
 };
 
 export type VendorApplicationStatus = "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
+
+export type ExperienceMode = "BUYER" | "SELLER" | "FACTORY" | "BEAUTY";
 
 /** Mirrors ../crownsourceglobal/app/api/v1/me/route.ts exactly — see src/types/api.ts's file header. */
 export type MeResponseDTO = {
@@ -132,7 +137,7 @@ export type MeResponseDTO = {
     email: string;
     emailVerified: boolean;
   };
-  customer: { id: string } | null;
+  customer: { id: string; preferredExperience: ExperienceMode | null } | null;
   vendor: {
     available: boolean;
     memberships: VendorMembershipDTO[];
@@ -271,7 +276,7 @@ export type SourcingRequestSummaryDTO = {
   statusLabel: string;
   submittedAt: string;
   hasQuotation: boolean;
-  /** Absolute, session-authenticated URL — only present when the first attachment is an image (see attachmentImageSource.ts for how to fetch it). */
+  /** Absolute, session-authenticated URL — only present when the first attachment is an image (render via <AttachmentImage>, see src/lib/media/useAttachmentImageUri.ts). */
   thumbnail: string | null;
 };
 
@@ -281,7 +286,7 @@ export type SourcingRequestAttachmentDTO = {
   mimeType: string;
   sizeBytes: number;
   isImage: boolean;
-  /** Session-authenticated — see attachmentImageSource.ts. */
+  /** Session-authenticated — render via <AttachmentImage>, see src/lib/media/useAttachmentImageUri.ts. */
   url: string;
 };
 
@@ -710,6 +715,7 @@ export type VendorApplicationDTO = {
   city: string | null;
   addressLine1: string | null;
   categorySlugs: string[];
+  categoryOther: string | null;
   sellingMode: string | null;
   bulkCapable: boolean;
   leadTimeDaysDefault: number | null;

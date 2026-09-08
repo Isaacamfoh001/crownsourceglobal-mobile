@@ -10,6 +10,8 @@ import { queryClient } from "@/lib/api/query-client";
 import { ENV } from "@/lib/env";
 import { Palette, Spacing, Type } from "@/constants/theme";
 import { AppThemeProvider, useAppTheme } from "@/hooks/useAppTheme";
+import { ExperienceProvider } from "@/hooks/useExperience";
+import { ExperienceGate } from "@/features/experience/ExperienceGate";
 import { PushSessionBridge } from "@/features/push/PushSessionBridge";
 import "@/lib/push/handler";
 
@@ -59,9 +61,13 @@ export default function RootLayout() {
       <ThemedStatusBar />
       <SafeAreaProvider onLayout={onLayoutRootView}>
         <QueryClientProvider client={queryClient}>
-          <PushSessionBridge />
-          <Stack screenOptions={{ headerShown: false }}>
+          <ExperienceProvider>
+            <PushSessionBridge />
+            <ExperienceGate />
+            <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="welcome" options={{ animation: "fade" }} />
+            <Stack.Screen name="switch-experience" options={{ presentation: "modal" }} />
             <Stack.Screen name="listing/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor/[slug]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="explore/create" options={{ presentation: "modal" }} />
@@ -100,7 +106,8 @@ export default function RootLayout() {
             <Stack.Screen name="vendor-resolutions/index" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-resolutions/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
-          </Stack>
+            </Stack>
+          </ExperienceProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </AppThemeProvider>

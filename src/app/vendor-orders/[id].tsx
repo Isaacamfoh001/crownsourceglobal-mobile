@@ -116,7 +116,7 @@ export default function VendorOrderDetailScreen() {
                 {order.shipment.carrier ?? "Carrier not set"} {order.shipment.trackingReference ? `· ${order.shipment.trackingReference}` : ""}
               </Text>
               <Text variant="small" tone="secondary">
-                Status: {order.shipment.status}
+                Status: {order.shipment.status.charAt(0) + order.shipment.status.slice(1).toLowerCase().replace(/_/g, " ")}
               </Text>
             </View>
           </View>

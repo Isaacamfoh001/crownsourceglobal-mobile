@@ -26,7 +26,7 @@ export function useSaveSellerType() {
 }
 
 export function useSaveContact() {
-  return useStepMutation<{ contactName: string; contactEmail: string; contactPhone: string }>("/api/v1/vendor-application/contact");
+  return useStepMutation<{ contactName: string; contactEmail?: string; contactPhone: string }>("/api/v1/vendor-application/contact");
 }
 
 export function useSaveBusiness() {
@@ -48,6 +48,7 @@ export function useSaveBusiness() {
 export function useSaveOperations() {
   return useStepMutation<{
     categorySlugs: string[];
+    categoryOther?: string;
     sellingMode: "retail" | "wholesale" | "both";
     bulkCapable: boolean;
     leadTimeDaysDefault?: number;

@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { Dimensions, FlatList, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { SourcingStatusBadge } from "@/components/ui/SourcingStatusBadge";
+import { AttachmentImage } from "@/components/ui/AttachmentImage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useSourcingRequestDetail } from "@/features/sourcing/useSourcingRequests";
-import { attachmentImageSource } from "@/lib/media/attachmentImageSource";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -63,7 +62,7 @@ export default function SourcingRequestDetailScreen() {
                 showsHorizontalScrollIndicator={false}
                 onMomentumScrollEnd={(e) => setActiveImageIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH))}
                 renderItem={({ item }) => (
-                  <Image source={attachmentImageSource(item.url)} style={{ width: SCREEN_WIDTH, height: imageHeight }} contentFit="cover" transition={150} />
+                  <AttachmentImage url={item.url} style={{ width: SCREEN_WIDTH, height: imageHeight }} contentFit="cover" transition={150} />
                 )}
                 style={styles.fullBleed}
               />

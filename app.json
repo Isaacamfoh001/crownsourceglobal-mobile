@@ -51,6 +51,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d5d75fb2-b537-4752-933a-bc93c62caea3"
+      }
+    },
+    "owner": "icee-01"
   }
 }

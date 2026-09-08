@@ -11,6 +11,7 @@ import { AppearanceSetting } from "@/components/ui/AppearanceSetting";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { useExperience } from "@/hooks/useExperience";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import type { MeResponseDTO } from "@/types/api";
 
@@ -113,9 +114,19 @@ function SignedOutAccount() {
 
 function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () => Promise<void> }) {
   const { colors } = useAppTheme();
+  const { experience, setExperience, availableExperiences } = useExperience();
+  const vendorModes = availableExperiences.filter((mode): mode is "SELLER" | "FACTORY" | "BEAUTY" => mode !== "BUYER");
+  // Reuse the person's last vendor-side mode if it's still legitimate;
+  // otherwise fall back to the most specific one they actually have —
+  // FACTORY/BEAUTY over plain SELLER, since those carry a more focused nav.
+  const currentModeIsVendorMode = vendorModes.some((mode) => mode === experience);
+  const defaultVendorMode = currentModeIsVendorMode
+    ? (experience as "SELLER" | "FACTORY" | "BEAUTY")
+    : (vendorModes.find((m) => m !== "SELLER") ?? vendorModes[0] ?? "SELLER");
   const initial = me.user.name.trim().charAt(0).toUpperCase() || "?";
 
   const menuItems: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress?: () => void }[] = [
+    { icon: "swap-horizontal-outline", label: "Switch experience", onPress: () => router.push("/switch-experience") },
     { icon: "notifications-outline", label: "Notifications", onPress: () => router.push("/notifications") },
     { icon: "sparkles-outline", label: "Service requests", onPress: () => router.push("/beauty-services/my-requests") },
     { icon: "receipt-outline", label: "Orders", onPress: () => router.push("/orders") },
@@ -174,7 +185,15 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
                 </View>
               ))}
             </View>
-            <Button label="Enter Vendor Mode" onPress={() => router.push("/(vendor)")} style={styles.vendorModeButton} fullWidth />
+            <Button
+              label="Enter Vendor Mode"
+              onPress={() => {
+                setExperience(defaultVendorMode);
+                router.push("/(vendor)");
+              }}
+              style={styles.vendorModeButton}
+              fullWidth
+            />
           </View>
         )}
 

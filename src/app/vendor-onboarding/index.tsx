@@ -135,6 +135,8 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
   const [city, setCity] = useState(app?.city ?? "");
   const [addressLine1, setAddressLine1] = useState(app?.addressLine1 ?? "");
   const [categorySlugs, setCategorySlugs] = useState<string[]>(app?.categorySlugs ?? []);
+  const [categoryOther, setCategoryOther] = useState(app?.categoryOther ?? "");
+  const [otherSelected, setOtherSelected] = useState(Boolean(app?.categoryOther));
   const [sellingMode, setSellingMode] = useState<string>(app?.sellingMode ?? "retail");
   const [bulkCapable, setBulkCapable] = useState(app?.bulkCapable ?? false);
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
@@ -159,8 +161,8 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
       if (!sellerType) return;
       saveSellerType.mutate({ sellerType }, { onSuccess: goNext });
     } else if (step === 1) {
-      if (!contactName.trim() || !contactEmail.trim() || !contactPhone.trim()) return;
-      saveContact.mutate({ contactName, contactEmail, contactPhone }, { onSuccess: goNext });
+      if (!contactName.trim() || !contactPhone.trim()) return;
+      saveContact.mutate({ contactName, contactEmail: contactEmail.trim() || undefined, contactPhone }, { onSuccess: goNext });
     } else if (step === 2) {
       if (!displayName.trim() || storeDescription.trim().length < 10 || !country.trim() || !region.trim() || !city.trim() || !addressLine1.trim()) return;
       if (REGISTRATION_RELEVANT.includes(sellerType ?? "") && !registrationNumber.trim()) return;
@@ -178,8 +180,12 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
         { onSuccess: goNext },
       );
     } else if (step === 3) {
-      if (categorySlugs.length === 0) return;
-      saveOperations.mutate({ categorySlugs, sellingMode: sellingMode as "retail" | "wholesale" | "both", bulkCapable }, { onSuccess: goNext });
+      const trimmedOther = categoryOther.trim();
+      if (categorySlugs.length === 0 && !trimmedOther) return;
+      saveOperations.mutate(
+        { categorySlugs, categoryOther: trimmedOther || undefined, sellingMode: sellingMode as "retail" | "wholesale" | "both", bulkCapable },
+        { onSuccess: goNext },
+      );
     } else {
       submitApplication.mutate(undefined, {
         onSuccess: () => {
@@ -246,7 +252,7 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
           {step === 1 && (
             <View style={styles.fieldGroup}>
               <TextField label="Your name" value={contactName} onChangeText={setContactName} autoCapitalize="words" />
-              <TextField label="Email" value={contactEmail} onChangeText={setContactEmail} keyboardType="email-address" />
+              <TextField label="Business email (optional)" value={contactEmail} onChangeText={setContactEmail} keyboardType="email-address" />
               <TextField label="Phone" value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" />
             </View>
           )}
@@ -311,8 +317,13 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
                       }
                     />
                   ))}
+                  <CategoryTile label="Other / Not listed" selected={otherSelected} onPress={() => setOtherSelected((v) => !v)} />
                 </View>
               )}
+
+              {otherSelected ? (
+                <TextField label="What do you sell?" value={categoryOther} onChangeText={setCategoryOther} />
+              ) : null}
 
               <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
                 Selling mode
@@ -335,10 +346,10 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
           {step === 4 && (
             <View style={styles.fieldGroup}>
               <ReviewRow label="Seller type" value={SELLER_TYPES.find((t) => t.value === sellerType)?.label ?? ""} />
-              <ReviewRow label="Contact" value={`${contactName} · ${contactEmail} · ${contactPhone}`} />
+              <ReviewRow label="Contact" value={[contactName, contactEmail, contactPhone].filter(Boolean).join(" · ")} />
               <ReviewRow label="Store" value={displayName} />
               <ReviewRow label="Location" value={`${addressLine1}, ${city}, ${region}, ${country}`} />
-              <ReviewRow label="Categories" value={categorySlugs.join(", ")} />
+              <ReviewRow label="Categories" value={[...categorySlugs, ...(categoryOther ? [categoryOther] : [])].join(", ")} />
               <ReviewRow label="Selling mode" value={sellingMode} />
               <Text variant="small" tone="muted">
                 Submitting sends your application to CrownSourceGlobal for review. You&apos;ll be notified once there&apos;s a decision.

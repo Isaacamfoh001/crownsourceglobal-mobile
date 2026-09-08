@@ -12,14 +12,23 @@ const ICONS: Record<string, { active: keyof typeof Ionicons.glyphMap; inactive: 
   orders: { active: "cube", inactive: "cube-outline" },
   finance: { active: "wallet", inactive: "wallet-outline" },
   more: { active: "ellipsis-horizontal-circle", inactive: "ellipsis-horizontal-circle-outline" },
+  // M32.3 — Factory/Beauty experience tabs.
+  sourcing: { active: "globe", inactive: "globe-outline" },
+  services: { active: "sparkles", inactive: "sparkles-outline" },
+  requests: { active: "calendar", inactive: "calendar-outline" },
+  explore: { active: "images", inactive: "images-outline" },
 };
 
 const LABELS: Record<string, string> = {
   index: "Dashboard",
-  listings: "Listings",
+  listings: "Products",
   orders: "Orders",
-  finance: "Finance",
+  finance: "Earnings",
   more: "More",
+  sourcing: "Sourcing",
+  services: "Services",
+  requests: "Requests",
+  explore: "Explore",
 };
 
 /**

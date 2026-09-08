@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
 import { IconButton } from "@/components/ui/IconButton";
 import { PickerModal } from "@/components/ui/PickerModal";
+import { SuccessSheet } from "@/components/ui/SuccessSheet";
 import { Radius, Spacing } from "@/constants/theme";
 import { COUNTRIES } from "@/constants/countries";
 import { useAppTheme } from "@/hooks/useAppTheme";
@@ -50,6 +51,7 @@ export default function SourceScreen() {
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [region, setRegion] = useState("");
   const [city, setCity] = useState("");
+  const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
 
   const quantity = parseInt(quantityText, 10);
   const hasValidQuantity = Number.isInteger(quantity) && quantity > 0;
@@ -112,16 +114,15 @@ export default function SourceScreen() {
       },
       {
         onSuccess: (data) => {
-          Alert.alert(
-            "Request received",
-            "CrownSourceGlobal will review your request and reach out through the app if we need more information.",
-            [{ text: "OK", onPress: () => router.push(`/sourcing/${data.id}`) }],
-          );
+          // Clear the completed draft only now, on real server success — a
+          // failed submission must leave photos/description/quantity/
+          // location exactly as the user left them (M32.3 §11).
           setPhotos([]);
           setDescription("");
           setQuantityText("1");
           setRegion("");
           setCity("");
+          setSubmittedRequestId(data.id);
         },
       },
     );
@@ -275,6 +276,20 @@ export default function SourceScreen() {
           selected={country}
           onSelect={setCountry}
           onClose={() => setCountryPickerOpen(false)}
+        />
+
+        <SuccessSheet
+          visible={submittedRequestId !== null}
+          title="Request received"
+          message="CrownSourceGlobal will review your request and start sourcing."
+          primaryLabel="View my request"
+          onPrimary={() => {
+            const id = submittedRequestId;
+            setSubmittedRequestId(null);
+            if (id) router.push(`/sourcing/${id}`);
+          }}
+          secondaryLabel="Source another product"
+          onSecondary={() => setSubmittedRequestId(null)}
         />
       </Screen>
     </KeyboardAvoidingView>

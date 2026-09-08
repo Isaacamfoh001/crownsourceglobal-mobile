@@ -1,11 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { IconButton } from "@/components/ui/IconButton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { AttachmentImage } from "@/components/ui/AttachmentImage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
 import { Radius, Spacing, TouchTarget } from "@/constants/theme";
@@ -13,7 +13,6 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { formatMoney } from "@/lib/format";
 import { orderStatus } from "@/lib/orderStatus";
 import { friendlyErrorMessage } from "@/lib/api/errors";
-import { attachmentImageSource } from "@/lib/media/attachmentImageSource";
 import { useResolutionCaseDetail } from "@/features/resolutions/useResolutionCase";
 import type { ResolutionCaseDetailDTO } from "@/types/api";
 
@@ -175,7 +174,7 @@ function CaseDetailContent({ caseDetail }: { caseDetail: ResolutionCaseDetailDTO
           <View style={styles.attachmentGrid}>
             {caseDetail.attachments.map((a) =>
               a.isImage ? (
-                <Image key={a.id} source={attachmentImageSource(a.url)} style={[styles.attachmentThumb, { backgroundColor: colors.surfaceSubtle }]} contentFit="cover" />
+                <AttachmentImage key={a.id} url={a.url} style={[styles.attachmentThumb, { backgroundColor: colors.surfaceSubtle }]} contentFit="cover" />
               ) : (
                 <View key={a.id} style={[styles.attachmentThumb, styles.attachmentFile, { backgroundColor: colors.surfaceSubtle }]}>
                   <Ionicons name="document-text-outline" size={20} color={colors.textMuted} />

@@ -40,6 +40,35 @@ const LISTING_STATUS: Record<string, StatusInfo> = {
   ARCHIVED: { label: "Archived", tone: "muted" },
 };
 
+export type ListingPresentationGroup = "all" | "live" | "inReview" | "draft";
+
+const LISTING_GROUP_INFO: Record<Exclude<ListingPresentationGroup, "all">, StatusInfo> = {
+  live: { label: "Live", tone: "success" },
+  inReview: { label: "In review", tone: "gold" },
+  draft: { label: "Draft", tone: "muted" },
+};
+
+/**
+ * M32.3 §14 — collapses the two raw backend axes (`ListingApprovalStatus`,
+ * `ListingStatus`) into the one plain-language group a vendor actually
+ * needs to filter by: All / Live / In review / Draft. Backend state
+ * machines are untouched; this is a presentation-only grouping consumed by
+ * `(vendor)/listings.tsx`'s filter chips and per-row badge.
+ *
+ * `listingStatus === "DRAFT"` wins first (not published, regardless of any
+ * prior review outcome); then any non-approved review outcome (PENDING/
+ * CHANGES_REQUESTED/REJECTED) is "In review" — a rejected listing still
+ * needs the vendor's attention, same as one awaiting review; everything
+ * else (APPROVED, whether ACTIVE/INACTIVE/ARCHIVED) is "Live" — inventory/
+ * visibility nuances like "Hidden" surface as a contextual inline tag, not
+ * a top-level filter (§14's explicit instruction).
+ */
+function listingGroup(approvalStatus: string, listingStatus: string): Exclude<ListingPresentationGroup, "all"> {
+  if (listingStatus === "DRAFT") return "draft";
+  if (approvalStatus !== "APPROVED") return "inReview";
+  return "live";
+}
+
 const FULFILMENT_STATUS: Record<string, StatusInfo> = {
   PENDING: { label: "New", tone: "gold" },
   ACCEPTED: { label: "Accepted", tone: "gold" },
@@ -52,20 +81,30 @@ const FULFILMENT_STATUS: Record<string, StatusInfo> = {
   CANCELLED: { label: "Cancelled", tone: "muted" },
 };
 
+/**
+ * M32.3 §15 — vendor-facing finance language, simplified. Internally
+ * PENDING/WAITING_PERIOD/ON_HOLD/ELIGIBLE/INCLUDED_IN_SETTLEMENT are five
+ * distinct backend states (still shown as-is to CrownSource Admin — see
+ * modules/vendor-finance — this map is mobile-presentation only and
+ * changes no backend state machine); to a vendor they all mean the same
+ * thing — "not paid yet" — so they collapse to one plain-language
+ * "Pending". PAID and CANCELLED are truthful and stay distinct.
+ */
 const EARNING_STATUS: Record<string, StatusInfo> = {
-  PENDING: { label: "Pending", tone: "muted" },
-  WAITING_PERIOD: { label: "Waiting period", tone: "gold" },
-  ON_HOLD: { label: "On hold", tone: "warning" },
-  ELIGIBLE: { label: "Eligible", tone: "success" },
-  INCLUDED_IN_SETTLEMENT: { label: "In settlement", tone: "gold" },
+  PENDING: { label: "Pending", tone: "gold" },
+  WAITING_PERIOD: { label: "Pending", tone: "gold" },
+  ON_HOLD: { label: "Pending", tone: "gold" },
+  ELIGIBLE: { label: "Pending", tone: "gold" },
+  INCLUDED_IN_SETTLEMENT: { label: "Pending", tone: "gold" },
   PAID: { label: "Paid", tone: "success" },
   CANCELLED: { label: "Cancelled", tone: "muted" },
 };
 
+/** M32.3 §15 — same collapse: DRAFT/APPROVED/PROCESSING are all still-waiting states from the vendor's point of view. FAILED stays distinct — it's actionable (see payout destination). */
 const SETTLEMENT_STATUS: Record<string, StatusInfo> = {
-  DRAFT: { label: "Draft", tone: "muted" },
-  APPROVED: { label: "Approved", tone: "gold" },
-  PROCESSING: { label: "Processing", tone: "gold" },
+  DRAFT: { label: "Pending", tone: "gold" },
+  APPROVED: { label: "Pending", tone: "gold" },
+  PROCESSING: { label: "Pending", tone: "gold" },
   PAID: { label: "Paid", tone: "success" },
   FAILED: { label: "Failed", tone: "error" },
   CANCELLED: { label: "Cancelled", tone: "muted" },
@@ -101,6 +140,8 @@ export const vendorStatus = {
   application: (status: string) => resolve(VENDOR_APPLICATION_STATUS, status),
   listingApproval: (status: string) => resolve(LISTING_APPROVAL_STATUS, status),
   listing: (status: string) => resolve(LISTING_STATUS, status),
+  listingGroup,
+  listingGroupInfo: (group: Exclude<ListingPresentationGroup, "all">) => LISTING_GROUP_INFO[group],
   fulfilment: (status: string) => resolve(FULFILMENT_STATUS, status),
   earning: (status: string) => resolve(EARNING_STATUS, status),
   settlement: (status: string) => resolve(SETTLEMENT_STATUS, status),

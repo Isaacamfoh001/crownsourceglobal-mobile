@@ -1,18 +1,17 @@
 import { useMemo } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { SourcingStatusBadge } from "@/components/ui/SourcingStatusBadge";
+import { AttachmentImage } from "@/components/ui/AttachmentImage";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState, EmptyState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useSourcingRequests } from "@/features/sourcing/useSourcingRequests";
-import { attachmentImageSource } from "@/lib/media/attachmentImageSource";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import type { SourcingRequestSummaryDTO } from "@/types/api";
 
@@ -85,7 +84,7 @@ export default function MySourcingRequestsScreen() {
               accessibilityRole="button"
             >
               {item.thumbnail ? (
-                <Image source={attachmentImageSource(item.thumbnail)} style={styles.thumb} contentFit="cover" />
+                <AttachmentImage url={item.thumbnail} style={styles.thumb} contentFit="cover" />
               ) : (
                 <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: colors.surfaceSubtle }]}>
                   <Ionicons name="camera-outline" size={20} color={colors.textMuted} />
