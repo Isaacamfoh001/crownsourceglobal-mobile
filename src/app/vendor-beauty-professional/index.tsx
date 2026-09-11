@@ -10,15 +10,17 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useVendorModeGuard } from "@/hooks/useVendorModeGuard";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import { useVendorBeautyProfile } from "@/features/vendor/useVendorBeautyProfessional";
-import { ProfileForm, ServicesSection, RequestsSection } from "@/features/vendor/beauty/BeautySections";
+import { ProfileForm } from "@/features/vendor/beauty/BeautySections";
 
 /**
- * Beauty Professional profile/services/requests, all in one pushed screen
- * — reachable from Vendor Mode's "More" hub regardless of current
- * Experience Mode (so a Seller who's also a Beauty Professional can still
- * get here without switching). The same three sections also power the
- * dedicated BEAUTY-mode tabs (`(vendor)/services.tsx`, `(vendor)/requests.tsx`)
- * — see BeautySections.tsx's doc comment.
+ * Beauty Professional "Profile settings" (M32.4.1 §2) — profile/business
+ * configuration only. Reachable two ways: BEAUTY mode's "More" hub (as
+ * "Profile settings"), and non-Beauty vendors via Switch experience →
+ * "Become a beauty professional" for first-time setup. Services and
+ * Service requests deliberately are NOT rendered here any more — BEAUTY
+ * mode already has its own dedicated `(vendor)/services.tsx` and
+ * `(vendor)/requests.tsx` tabs for those (see BeautySections.tsx's doc
+ * comment), so this screen no longer duplicates them.
  */
 export default function VendorBeautyProfessionalScreen() {
   const { colors } = useAppTheme();
@@ -53,18 +55,11 @@ export default function VendorBeautyProfessionalScreen() {
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </Pressable>
           <Text variant="sectionHeading" tone="primary">
-            Beauty Professional
+            Profile settings
           </Text>
         </View>
 
         <ProfileForm profile={query.data} />
-
-        {query.data ? (
-          <>
-            <ServicesSection />
-            <RequestsSection />
-          </>
-        ) : null}
       </Screen>
     </KeyboardAvoidingView>
   );

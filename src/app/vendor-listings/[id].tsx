@@ -30,13 +30,6 @@ import type { VendorListingImageDTO } from "@/types/api";
 import { useVendorModeGuard } from "@/hooks/useVendorModeGuard";
 
 const MAX_IMAGES = 5;
-const AVAILABILITY_OPTIONS = [
-  { value: "IN_STOCK", label: "In stock" },
-  { value: "LOW_STOCK", label: "Low stock" },
-  { value: "OUT_OF_STOCK", label: "Out of stock" },
-  { value: "MADE_TO_ORDER", label: "Made to order" },
-] as const;
-
 const THUMB_SIZE = 84;
 
 export default function VendorListingDetailScreen() {
@@ -294,10 +287,24 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
   );
 }
 
+/**
+ * M32.4.1 §1 — the seller-facing control is a plain Available/Unavailable
+ * switch, not the full `AvailabilityStatus` enum (still IN_STOCK /
+ * LOW_STOCK / OUT_OF_STOCK / MADE_TO_ORDER server-side — no backend
+ * migration here). This mapping is exactly truthful rather than a lossy
+ * approximation: checkout/cart (`modules/cart/service.ts`,
+ * `AddToCartForm`) only ever special-case `OUT_OF_STOCK` — IN_STOCK,
+ * LOW_STOCK and MADE_TO_ORDER are all equally "purchasable" to a buyer.
+ * So "Available" means "not OUT_OF_STOCK". Saving while "Available" is
+ * selected preserves whatever non-OUT_OF_STOCK status the listing already
+ * has (e.g. a MADE_TO_ORDER listing configured from the vendor web
+ * portal, which mobile has no UI to set) rather than silently downgrading
+ * it to IN_STOCK just because the vendor only meant to update quantity.
+ */
 function InventorySection({ listingId, availableQuantity, availabilityStatus }: { listingId: string; availableQuantity: number; availabilityStatus: string }) {
   const updateInventory = useUpdateVendorListingInventory();
   const [quantity, setQuantity] = useState(String(availableQuantity));
-  const [status, setStatus] = useState(availabilityStatus);
+  const [available, setAvailable] = useState(availabilityStatus !== "OUT_OF_STOCK");
 
   // Re-sync after a save confirms new server values — see the render-time
   // sync note on ListingForm's `syncedImages` above.
@@ -305,13 +312,14 @@ function InventorySection({ listingId, availableQuantity, availabilityStatus }: 
   if (synced.availableQuantity !== availableQuantity || synced.availabilityStatus !== availabilityStatus) {
     setSynced({ availableQuantity, availabilityStatus });
     setQuantity(String(availableQuantity));
-    setStatus(availabilityStatus);
+    setAvailable(availabilityStatus !== "OUT_OF_STOCK");
   }
 
   const onSave = () => {
     const qty = Number(quantity);
     if (!Number.isFinite(qty) || qty < 0 || updateInventory.isPending) return;
-    updateInventory.mutate({ listingId, availableQuantity: qty, availabilityStatus: status });
+    const nextStatus = available ? (availabilityStatus === "OUT_OF_STOCK" ? "IN_STOCK" : availabilityStatus) : "OUT_OF_STOCK";
+    updateInventory.mutate({ listingId, availableQuantity: qty, availabilityStatus: nextStatus });
   };
 
   return (
@@ -324,9 +332,8 @@ function InventorySection({ listingId, availableQuantity, availabilityStatus }: 
         Availability
       </Text>
       <View style={styles.categoryRow}>
-        {AVAILABILITY_OPTIONS.map((option) => (
-          <CategoryTile key={option.value} label={option.label} selected={status === option.value} onPress={() => setStatus(option.value)} />
-        ))}
+        <CategoryTile label="Available" selected={available} onPress={() => setAvailable(true)} />
+        <CategoryTile label="Unavailable" selected={!available} onPress={() => setAvailable(false)} />
       </View>
       {updateInventory.isError ? (
         <Text variant="small" tone="error">

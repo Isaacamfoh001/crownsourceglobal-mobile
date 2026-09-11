@@ -30,11 +30,13 @@ import {
 } from "@/features/vendor/useVendorBeautyProfessional";
 
 /**
- * M32.3 — extracted from `src/app/vendor-beauty-professional/index.tsx` so
- * the same profile/services/requests sections can be reused both by that
- * existing pushed screen (still reachable, e.g. from a non-Beauty-mode
- * "More" hub) and by the new BEAUTY-mode `(vendor)` tabs (`services.tsx`,
- * `requests.tsx`) — same components, same hooks, no duplicated logic.
+ * M32.3 — `ProfileForm` originally lived inline in
+ * `src/app/vendor-beauty-professional/index.tsx` ("Profile settings",
+ * reachable from BEAUTY mode's "More" hub); it's extracted here so that
+ * screen and the Beauty onboarding flow can share it. `ServicesSection`/
+ * `RequestsSection` power the dedicated BEAUTY-mode `(vendor)` tabs
+ * (`services.tsx`, `requests.tsx`) only, as of M32.4.1 §2 — "Profile
+ * settings" no longer duplicates them.
  */
 export const LOCATION_MODES = [
   { value: "PROVIDER_LOCATION", label: "My location" },
