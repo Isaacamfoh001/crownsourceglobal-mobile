@@ -213,39 +213,20 @@ function VendorOnboardingBody({
   // move straight into the real Beauty profile setup instead of a dead-end
   // status card (M32.6 §5/§9). A navigation side effect belongs in an
   // effect, not the render body, matching useVendorModeGuard's convention.
+  // An already-approved Seller/Vendor landing on the first-time manufacturer
+  // wizard (e.g. a stale deep link) has a real upgrade path now — M32.8's
+  // short manufacturer-application screen — never the old "not supported
+  // yet" dead-end (M32.8.1 §1/§6). Normal navigation (welcome.tsx,
+  // switch-experience.tsx) already routes an existing Vendor there directly
+  // and never reaches this wizard at all; this is just the safety net.
+  const manufacturerUpgradeNeeded = type === "manufacturer" && application.status === "APPROVED" && application.sellerType !== "MANUFACTURER";
+
   useEffect(() => {
     if (beautyReadyToContinue) router.replace("/vendor-beauty-professional");
-  }, [beautyReadyToContinue]);
+    if (manufacturerUpgradeNeeded) router.replace("/manufacturer-upgrade");
+  }, [beautyReadyToContinue, manufacturerUpgradeNeeded]);
 
-  if (beautyReadyToContinue) return null;
-
-  // An already-approved Seller (or other non-manufacturer) has no upgrade
-  // path to Factory eligibility in the current backend — there is no
-  // endpoint to change an approved Vendor's sellerType, and VendorApplication
-  // is a single record per Vendor, not one per pathway (M32.6 §9/§I). Say so
-  // plainly rather than inventing an upgrade or silently reusing the Seller
-  // wizard.
-  if (type === "manufacturer" && application.status === "APPROVED" && application.sellerType !== "MANUFACTURER") {
-    return (
-      <Screen>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}>
-            <Ionicons name="close" size={24} color={colors.textPrimary} />
-          </Pressable>
-        </View>
-        <View style={styles.statusContainer}>
-          <Text variant="screenTitle" tone="primary" style={styles.center}>
-            Manufacturer access isn&apos;t available yet
-          </Text>
-          <Text variant="body" tone="secondary" style={styles.center}>
-            Your seller account is already approved, but upgrading an existing seller account to a manufacturer account isn&apos;t
-            supported in the app yet. This needs a decision from the CrownSourceGlobal team before it can open up.
-          </Text>
-          <Button label="Done" onPress={() => router.back()} style={styles.doneButton} />
-        </View>
-      </Screen>
-    );
-  }
+  if (beautyReadyToContinue || manufacturerUpgradeNeeded) return null;
 
   if (!EDITABLE_STATUSES.has(application.status)) {
     const info = vendorStatus.application(application.status);

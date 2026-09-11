@@ -75,7 +75,13 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
     if (me?.vendor.available) {
       modes.add("SELLER");
       for (const membership of me.vendor.memberships) {
-        if (membership.sellerType === "MANUFACTURER") modes.add("FACTORY");
+        // M32.8 — Factory eligibility no longer relies on sellerType alone:
+        // an existing Seller who separately applied for and was approved
+        // for Manufacturer capability is eligible too (manufacturer.available
+        // already covers the direct sellerType === "MANUFACTURER" path as
+        // well — see app/api/v1/me/route.ts on the backend — but both are
+        // checked here to keep this the one explicit source of truth).
+        if (membership.sellerType === "MANUFACTURER" || membership.manufacturer.available) modes.add("FACTORY");
         if (membership.beautyProfessional.available) modes.add("BEAUTY");
       }
     }

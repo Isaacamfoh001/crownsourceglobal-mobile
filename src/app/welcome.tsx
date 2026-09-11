@@ -86,6 +86,10 @@ export default function WelcomeScreen() {
       router.push("/vendor-beauty-professional");
     } else if (mode === "BEAUTY") {
       router.push({ pathname: "/vendor-onboarding", params: { type: "beauty" } });
+    } else if (mode === "FACTORY" && isVendor) {
+      // An approved Vendor gets the short M32.8 upgrade application, never
+      // the first-time manufacturer wizard (M32.8.1 §1/§6).
+      router.push("/manufacturer-upgrade");
     } else if (mode === "FACTORY") {
       router.push({ pathname: "/vendor-onboarding", params: { type: "manufacturer" } });
     } else {

@@ -26,6 +26,7 @@ export function notificationIcon(type: NotificationType): IconName {
   if (type === "ADMIN_NEW_TALENT_APPLICATION") return "briefcase-outline";
   if (type.startsWith("EXPLORE_POST_")) return "images-outline";
   if (type.startsWith("BEAUTY_PROFESSIONAL_")) return "sparkles-outline";
+  if (type.startsWith("MANUFACTURER_APPLICATION_") || type === "ADMIN_NEW_MANUFACTURER_APPLICATION") return "cube-outline";
   if (type.startsWith("SERVICE_REQUEST_")) return "sparkles-outline";
   if (type.startsWith("ADMIN_NEW_VENDOR_APPLICATION") || type.startsWith("ADMIN_NEW_SOURCING_REQUEST")) return "shield-outline";
   return "notifications-outline";

@@ -90,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="resolutions/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="resolutions/new" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-onboarding/index" options={{ presentation: "modal" }} />
+            <Stack.Screen name="manufacturer-upgrade/index" options={{ presentation: "modal" }} />
             <Stack.Screen name="(vendor)" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-listings/[id]" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="vendor-listings/new" options={{ presentation: "modal" }} />

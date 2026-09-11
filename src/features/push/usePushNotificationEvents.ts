@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api/client";
 import { NOTIFICATIONS_QUERY_KEY, UNREAD_COUNT_QUERY_KEY } from "@/features/notifications/useNotifications";
 import { resolveNotificationDestination } from "@/features/notifications/destination";
+import { MANUFACTURER_APPLICATION_QUERY_KEY } from "@/features/vendor/useManufacturerApplication";
 
 function stringField(data: unknown, key: string): string | null {
   if (data && typeof data === "object" && key in data) {
@@ -53,6 +54,13 @@ export function usePushNotificationEvents(enabled: boolean) {
     const receivedSubscription = Notifications.addNotificationReceivedListener(() => {
       queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
       queryClient.invalidateQueries({ queryKey: UNREAD_COUNT_QUERY_KEY });
+      // M32.8.1 §7 — a push can change what GET /api/v1/me reports (e.g.
+      // MANUFACTURER_APPLICATION_APPROVED unlocking Factory), so refresh it
+      // the same way any other invalidation-on-push already works here,
+      // rather than building a second, event-type-specific pipeline. Cheap
+      // and harmless for pushes that don't touch it.
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: MANUFACTURER_APPLICATION_QUERY_KEY });
     });
 
     const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {

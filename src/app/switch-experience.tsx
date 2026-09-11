@@ -42,7 +42,7 @@ export default function SwitchExperienceScreen() {
     notYetSetUp.push({
       key: "factory",
       label: "Join as a manufacturer",
-      onPress: () => router.push({ pathname: "/vendor-onboarding", params: { type: "manufacturer" } }),
+      onPress: () => (isVendor ? router.push("/manufacturer-upgrade") : router.push({ pathname: "/vendor-onboarding", params: { type: "manufacturer" } })),
     });
   }
   if (!availableExperiences.includes("BEAUTY")) {

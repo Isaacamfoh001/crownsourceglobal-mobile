@@ -115,7 +115,16 @@ export type CategoriesResponseDTO = {
   categories: CategoryWithChildrenDTO[];
 };
 
-/** M32.3 — `sellerType`/`beautyProfessional` are UI-only Experience Mode eligibility signals, never authorization. */
+/** M32.8 — the `manufacturer.application` subset embedded in `GET /api/v1/me`'s per-membership view; mirrors app/api/v1/me/route.ts's inline shape exactly (a smaller projection than ManufacturerApplicationDTO below — no submittedAt/reviewedAt/createdAt/updatedAt). */
+export type ManufacturerApplicationSummaryDTO = {
+  id: string;
+  status: VendorApplicationStatusM27;
+  decisionReason: string | null;
+  categorySlugs: string[];
+  categoryOther: string | null;
+};
+
+/** M32.3 — `sellerType`/`beautyProfessional`/`manufacturer` are UI-only Experience Mode eligibility signals, never authorization. */
 export type VendorMembershipDTO = {
   vendorId: string;
   role: string;
@@ -123,6 +132,14 @@ export type VendorMembershipDTO = {
   verificationStatus: string;
   sellerType: string | null;
   beautyProfessional: { available: boolean };
+  /**
+   * M32.8 — Factory eligibility for a Vendor that upgraded rather than being
+   * created as MANUFACTURER directly. `available` is true either way
+   * (sellerType already covers the direct path); `application` lets the
+   * client render the upgrade request's own pending/changes-requested/
+   * rejected state without a second round trip.
+   */
+  manufacturer: { available: boolean; application: ManufacturerApplicationSummaryDTO | null };
 };
 
 export type VendorApplicationStatus = "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "CHANGES_REQUESTED";
@@ -726,6 +743,25 @@ export type VendorApplicationDTO = {
   vendorId: string | null;
 };
 
+/**
+ * `GET/PATCH /api/v1/vendor/manufacturer-application` (M32.8) — an existing
+ * approved Seller/Vendor's short Factory upgrade request. Reuses the same
+ * `VendorApplicationStatusM27` status machine as VendorApplicationDTO, but
+ * this is a single-step form (just what they manufacture) with no draft-save
+ * endpoint — PATCH always (re)submits for review.
+ */
+export type ManufacturerApplicationDTO = {
+  id: string;
+  status: VendorApplicationStatusM27;
+  categorySlugs: string[];
+  categoryOther: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  decisionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 /** `GET /api/v1/vendor/dashboard`. */
 export type VendorDashboardDTO = {
   vendor: { companyName: string; verificationStatus: string };
@@ -1007,7 +1043,12 @@ export type NotificationType =
   | "SERVICE_REQUEST_ACCEPTED"
   | "SERVICE_REQUEST_DECLINED"
   | "VENDOR_SOURCING_SOLICITATION_RECEIVED"
-  | "ADMIN_SOURCING_SOLICITATION_RESPONDED";
+  | "ADMIN_SOURCING_SOLICITATION_RESPONDED"
+  | "MANUFACTURER_APPLICATION_SUBMITTED"
+  | "MANUFACTURER_APPLICATION_APPROVED"
+  | "MANUFACTURER_APPLICATION_CHANGES_REQUESTED"
+  | "MANUFACTURER_APPLICATION_REJECTED"
+  | "ADMIN_NEW_MANUFACTURER_APPLICATION";
 
 /** `GET /api/v1/notifications` row — mirrors toNotificationDTO exactly. `targetUrl` is the backend's web path; never pushed directly as an Expo Router route — see features/notifications/destination.ts. */
 export type NotificationDTO = {
