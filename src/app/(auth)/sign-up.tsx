@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +15,7 @@ const MIN_PASSWORD_LENGTH = 8;
 
 /** Native email/password sign-up (M20.2 §8). Fields follow the backend's actual emailAndPassword requirements — name, email, password — audited from ../crownsourceglobal/lib/auth.ts, plus a client-only confirm-password check. */
 export default function SignUpScreen() {
+  const params = useLocalSearchParams<{ redirect?: string }>();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +56,7 @@ export default function SignUpScreen() {
         return;
       }
 
-      router.replace({ pathname: "/(auth)/verify-email", params: { email: trimmedEmail } });
+      router.replace({ pathname: "/(auth)/verify-email", params: params.redirect ? { email: trimmedEmail, redirect: params.redirect } : { email: trimmedEmail } });
     } catch {
       setError("Could not reach the CrownSourceGlobal server. Check your connection and try again.");
     } finally {
@@ -123,7 +124,11 @@ export default function SignUpScreen() {
             <Text variant="body" tone="secondary">
               Already have an account?
             </Text>
-            <Button label="Sign in" variant="ghost" onPress={() => router.replace("/(auth)/sign-in")} />
+            <Button
+              label="Sign in"
+              variant="ghost"
+              onPress={() => router.replace({ pathname: "/(auth)/sign-in", params: { redirect: params.redirect ?? "" } })}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>

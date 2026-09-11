@@ -57,7 +57,15 @@ export function useVendorServices(enabled: boolean) {
   });
 }
 
-export type VendorServiceInput = { name: string; description?: string; categoryId: string; startingPrice?: string; currency?: string };
+export type VendorServiceInput = {
+  name: string;
+  description?: string;
+  categoryId?: string;
+  /** M32.5 — "Other / Not listed" free text; mutually exclusive with categoryId. */
+  categoryOther?: string;
+  startingPrice?: string;
+  currency?: string;
+};
 
 export function useCreateVendorService() {
   const queryClient = useQueryClient();

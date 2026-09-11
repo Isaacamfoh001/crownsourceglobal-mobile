@@ -23,7 +23,7 @@ const RESEND_COOLDOWN_SECONDS = 30;
  */
 export default function VerifyEmailScreen() {
   const { colors } = useAppTheme();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; redirect?: string }>();
   const email = params.email ?? null;
 
   const [resending, setResending] = useState(false);
@@ -86,7 +86,12 @@ export default function VerifyEmailScreen() {
           />
         )}
 
-        <Button label="Back to sign in" onPress={() => router.replace("/(auth)/sign-in")} fullWidth style={styles.action} />
+        <Button
+          label="Back to sign in"
+          onPress={() => router.replace({ pathname: "/(auth)/sign-in", params: { redirect: params.redirect ?? "" } })}
+          fullWidth
+          style={styles.action}
+        />
       </View>
     </Screen>
   );

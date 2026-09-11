@@ -90,6 +90,22 @@ function SignedOutAccount() {
           <Button label="Create account" variant="outline" onPress={() => router.push("/(auth)/sign-up")} fullWidth />
         </View>
 
+        <View style={styles.section}>
+          <Pressable
+            onPress={() => router.push("/welcome")}
+            style={[styles.groupedList, styles.groupedRow, { backgroundColor: colors.surface }]}
+            accessibilityRole="button"
+          >
+            <View style={[styles.listIcon, { backgroundColor: colors.surfaceSubtle }]}>
+              <Ionicons name="compass-outline" size={18} color={colors.textSecondary} />
+            </View>
+            <Text variant="body" tone="primary" style={styles.flex}>
+              Explore CrownSource experiences
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+        </View>
+
         <View style={styles.valueList}>
           {SIGNED_OUT_BENEFITS.map((item, index) => (
             <View
@@ -126,7 +142,12 @@ function SignedInAccount({ me, onSignOut }: { me: MeResponseDTO; onSignOut: () =
   const initial = me.user.name.trim().charAt(0).toUpperCase() || "?";
 
   const menuItems: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress?: () => void }[] = [
-    { icon: "swap-horizontal-outline", label: "Switch experience", onPress: () => router.push("/switch-experience") },
+    { icon: "compass-outline", label: "Explore CrownSource experiences", onPress: () => router.push("/welcome") },
+    // Only worth a separate entry once there's more than one experience to
+    // switch between — with just BUYER, Explore already covers everything.
+    ...(availableExperiences.length > 1
+      ? [{ icon: "swap-horizontal-outline" as const, label: "Switch experience", onPress: () => router.push("/switch-experience") }]
+      : []),
     { icon: "notifications-outline", label: "Notifications", onPress: () => router.push("/notifications") },
     { icon: "sparkles-outline", label: "Service requests", onPress: () => router.push("/beauty-services/my-requests") },
     { icon: "receipt-outline", label: "Orders", onPress: () => router.push("/orders") },

@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
+import { OTHER_CATEGORY_LABEL } from "@/constants/categories";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useCategories } from "@/features/categories/useCategories";
 import { prepareImage } from "@/lib/media/prepareImage";
@@ -128,7 +129,9 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
 
   const [title, setTitle] = useState(listing.title);
   const [description, setDescription] = useState(listing.description);
-  const [categoryId, setCategoryId] = useState(listing.categoryId);
+  const [categoryId, setCategoryId] = useState<string | undefined>(listing.categoryOther ? undefined : listing.categoryId);
+  const [showOtherInput, setShowOtherInput] = useState(Boolean(listing.categoryOther));
+  const [categoryOther, setCategoryOther] = useState(listing.categoryOther ?? "");
   const [basePrice, setBasePrice] = useState(String(Number(listing.price.amount)));
   const [moq, setMoq] = useState(String(listing.moq));
   const [maxOq, setMaxOq] = useState(listing.maxOq !== null ? String(listing.maxOq) : "");
@@ -168,7 +171,12 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
   const trimmedDescription = description.trim();
   const priceValue = Number(basePrice);
   const moqValue = Number(moq) || 1;
-  const canSave = trimmedTitle.length >= 3 && trimmedDescription.length >= 10 && Boolean(categoryId) && priceValue > 0 && totalImages >= 1;
+  const canSave =
+    trimmedTitle.length >= 3 &&
+    trimmedDescription.length >= 10 &&
+    (showOtherInput ? categoryOther.trim().length > 0 : Boolean(categoryId)) &&
+    priceValue > 0 &&
+    totalImages >= 1;
 
   const onSave = () => {
     if (!canSave || saveContent.isPending) return;
@@ -176,7 +184,8 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
       listingId: listing.id,
       title: trimmedTitle,
       description: trimmedDescription,
-      categoryId,
+      categoryId: showOtherInput ? undefined : categoryId,
+      categoryOther: showOtherInput ? categoryOther.trim() : undefined,
       basePrice: priceValue,
       moq: moqValue,
       maxOq: maxOq ? Number(maxOq) : null,
@@ -248,9 +257,28 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
       </Text>
       <View style={styles.categoryRow}>
         {(categoriesQuery.data?.categories ?? []).map((category) => (
-          <CategoryTile key={category.id} label={category.name} selected={categoryId === category.id} onPress={() => setCategoryId(category.id)} />
+          <CategoryTile
+            key={category.id}
+            label={category.name}
+            selected={!showOtherInput && categoryId === category.id}
+            onPress={() => {
+              setCategoryId(category.id);
+              setShowOtherInput(false);
+            }}
+          />
         ))}
+        <CategoryTile
+          label={OTHER_CATEGORY_LABEL}
+          selected={showOtherInput}
+          onPress={() => {
+            setShowOtherInput(true);
+            setCategoryId(undefined);
+          }}
+        />
       </View>
+      {showOtherInput ? (
+        <TextField label="What category is this?" value={categoryOther} onChangeText={setCategoryOther} placeholder="e.g. Hair tools, Party supplies" autoCapitalize="words" />
+      ) : null}
 
       <View style={styles.row}>
         <View style={styles.flex}>

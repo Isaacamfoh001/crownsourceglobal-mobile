@@ -33,7 +33,25 @@ export default function SwitchExperienceScreen() {
   }
 
   const isVendor = Boolean(me?.vendor.available);
-  const hasBeautyProfile = me?.vendor.memberships.some((m) => m.beautyProfessional.available) ?? false;
+
+  const notYetSetUp: { key: string; label: string; onPress: () => void }[] = [];
+  if (!availableExperiences.includes("SELLER")) {
+    notYetSetUp.push({ key: "seller", label: "Start selling", onPress: () => router.push({ pathname: "/vendor-onboarding", params: { type: "seller" } }) });
+  }
+  if (!availableExperiences.includes("FACTORY")) {
+    notYetSetUp.push({
+      key: "factory",
+      label: "Join as a manufacturer",
+      onPress: () => router.push({ pathname: "/vendor-onboarding", params: { type: "manufacturer" } }),
+    });
+  }
+  if (!availableExperiences.includes("BEAUTY")) {
+    notYetSetUp.push({
+      key: "beauty",
+      label: "Become a beauty professional",
+      onPress: () => (isVendor ? router.push("/vendor-beauty-professional") : router.push({ pathname: "/vendor-onboarding", params: { type: "beauty" } })),
+    });
+  }
 
   return (
     <Screen>
@@ -68,35 +86,25 @@ export default function SwitchExperienceScreen() {
         </View>
       </View>
 
-      {!isVendor ? (
+      {notYetSetUp.length > 0 ? (
         <View style={styles.section}>
           <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
             NOT YET SET UP
           </Text>
-          <Pressable
-            onPress={() => router.push("/vendor-onboarding")}
-            style={[styles.groupedList, styles.onboardingRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <Text variant="bodyMedium" tone="primary" style={styles.flex}>
-              Start selling
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
-        </View>
-      ) : !hasBeautyProfile ? (
-        <View style={styles.section}>
-          <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
-            NOT YET SET UP
-          </Text>
-          <Pressable
-            onPress={() => router.push("/vendor-beauty-professional")}
-            style={[styles.groupedList, styles.onboardingRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          >
-            <Text variant="bodyMedium" tone="primary" style={styles.flex}>
-              Become a beauty professional
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
+          <View style={[styles.groupedList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            {notYetSetUp.map((item, index) => (
+              <Pressable
+                key={item.key}
+                onPress={item.onPress}
+                style={[styles.onboardingRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
+              >
+                <Text variant="bodyMedium" tone="primary" style={styles.flex}>
+                  {item.label}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+              </Pressable>
+            ))}
+          </View>
         </View>
       ) : null}
     </Screen>

@@ -22,10 +22,12 @@ export function useVendorListingDetail(id: string | undefined) {
   });
 }
 
+/** M32.5 — pass either a real `categoryId` or a free-text `categoryOther` ("Other / Not listed"), never both. */
 export function useCreateVendorListingDraft() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (categoryId: string) => apiClient.post<{ id: string }>("/api/v1/vendor/listings", { body: { categoryId } }),
+    mutationFn: (input: { categoryId?: string; categoryOther?: string }) =>
+      apiClient.post<{ id: string }>("/api/v1/vendor/listings", { body: input }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["vendor-listings"] }),
   });
 }
@@ -36,7 +38,9 @@ export type SaveListingContentInput = {
   listingId: string;
   title: string;
   description: string;
-  categoryId: string;
+  categoryId?: string;
+  /** M32.5 — "Other / Not listed" free text; mutually exclusive with categoryId. */
+  categoryOther?: string;
   basePrice: number;
   moq: number;
   maxOq: number | null;
@@ -61,7 +65,8 @@ export function useSaveVendorListingContent() {
       const form = new FormData();
       form.append("title", input.title);
       form.append("description", input.description);
-      form.append("categoryId", input.categoryId);
+      if (input.categoryId) form.append("categoryId", input.categoryId);
+      if (input.categoryOther) form.append("categoryOther", input.categoryOther);
       form.append("basePrice", String(input.basePrice));
       form.append("moq", String(input.moq));
       if (input.maxOq !== null) form.append("maxOq", String(input.maxOq));

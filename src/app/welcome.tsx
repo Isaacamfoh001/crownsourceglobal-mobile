@@ -6,6 +6,7 @@ import { Text } from "@/components/ui/Text";
 import { AppLogo } from "@/components/ui/AppLogo";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
+import { useAuth } from "@/hooks/useAuth";
 import { useExperience } from "@/hooks/useExperience";
 import type { ExperienceMode } from "@/types/api";
 
@@ -24,29 +25,88 @@ const OPTIONS: {
 ];
 
 /**
- * First-run experience chooser (M32.3 §2) — asks, once, what the person
- * came to do, then gets out of the way. Selecting a commerce/service
- * option just records intent and opens the normal app; it never gates
- * discovery or forces sign-in (§3) — the matching onboarding (Vendor
- * application, Beauty Professional application) only ever runs later, from
- * Account, when the person actually chooses to act on it.
+ * Experience chooser (M32.3 §2, reopenable since M32.5.1). Two entry paths
+ * share this one screen:
+ *
+ * - First run: `ExperienceGate` force-navigates here while `experience` is
+ *   still null. Behavior here is untouched from M32.3 — choosing a
+ *   commerce/service option just records intent and opens the normal app;
+ *   onboarding never fires immediately, only later from Account.
+ * - Reopened later ("Explore CrownSource experiences" in Account):
+ *   `experience` is already non-null, since the gate above is the only way
+ *   to reach this screen with it still null. In that case a choice acts
+ *   immediately — entering the mode if the account already qualifies for
+ *   it, else launching that mode's existing onboarding — matching what
+ *   Switch Experience already does for modes the account has.
  */
 export default function WelcomeScreen() {
   const { colors } = useAppTheme();
-  const { setExperience } = useExperience();
+  const { me } = useAuth();
+  const { experience, setExperience, availableExperiences } = useExperience();
+  const isReentry = experience !== null;
+  const isVendor = Boolean(me?.vendor.available);
 
   function choose(option: (typeof OPTIONS)[number]) {
-    // Careers has no persistent experience (M32.3 §9) — "BUYER" is the
-    // implicit default so the chooser never shows again, without biasing
-    // any later Vendor/Beauty eligibility.
-    setExperience(option.experience ?? "BUYER");
-    router.replace("/(tabs)");
-    if (option.href) router.push(option.href as never);
+    if (!isReentry) {
+      // First run (M32.3 §3), unchanged: record intent only, never gate on
+      // eligibility, and Careers still defaults to "BUYER" so the chooser
+      // never shows again.
+      setExperience(option.experience ?? "BUYER");
+      router.replace("/(tabs)");
+      if (option.href) router.push(option.href as never);
+      return;
+    }
+
+    if (option.href) {
+      // Careers on reentry never touches the active experience — doing so
+      // would silently switch the mode the person already had.
+      router.push(option.href as never);
+      return;
+    }
+
+    const mode = option.experience as ExperienceMode;
+
+    if (mode === "BUYER") {
+      setExperience(mode);
+      router.replace("/(tabs)");
+      return;
+    }
+
+    if (availableExperiences.includes(mode)) {
+      setExperience(mode);
+      router.replace("/(vendor)");
+      return;
+    }
+
+    // Not yet eligible — send them into the same pathway-specific onboarding
+    // Switch Experience already offers, without touching the active mode
+    // (M32.6 — each pathway gets its own onboarding journey, never a
+    // generic vendor gate).
+    if (mode === "BEAUTY" && isVendor) {
+      router.push("/vendor-beauty-professional");
+    } else if (mode === "BEAUTY") {
+      router.push({ pathname: "/vendor-onboarding", params: { type: "beauty" } });
+    } else if (mode === "FACTORY") {
+      router.push({ pathname: "/vendor-onboarding", params: { type: "manufacturer" } });
+    } else {
+      router.push({ pathname: "/vendor-onboarding", params: { type: "seller" } });
+    }
   }
 
   return (
     <Screen edges={["top", "bottom"]}>
       <View style={styles.header}>
+        {isReentry && (
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            hitSlop={8}
+            style={styles.closeButton}
+          >
+            <Ionicons name="close" size={22} color={colors.textPrimary} />
+          </Pressable>
+        )}
         <AppLogo width={72} />
         <Text variant="screenTitle" tone="primary" style={styles.title}>
           What would you like to do?
@@ -84,7 +144,8 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, gap: Spacing.xs },
+  header: { alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, gap: Spacing.xs, position: "relative" },
+  closeButton: { position: "absolute", top: Spacing.xl, right: Spacing.xl, zIndex: 1 },
   title: { textAlign: "center", marginTop: Spacing.md },
   subtitle: { textAlign: "center" },
   list: { padding: Spacing.md, gap: Spacing.sm, marginTop: Spacing.md },

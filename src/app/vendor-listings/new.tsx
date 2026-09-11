@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
 import { CategoryTile } from "@/components/ui/CategoryTile";
 import { ErrorState } from "@/components/ui/StateViews";
 import { friendlyErrorMessage } from "@/lib/api/errors";
 import { Spacing } from "@/constants/theme";
+import { OTHER_CATEGORY_LABEL } from "@/constants/categories";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useCategories } from "@/features/categories/useCategories";
 import { useCreateVendorListingDraft } from "@/features/vendor/useVendorListings";
@@ -19,15 +23,33 @@ export default function NewVendorListingScreen() {
   const categoriesQuery = useCategories();
   const createDraft = useCreateVendorListingDraft();
 
+  const [showOtherInput, setShowOtherInput] = useState(false);
+  const [categoryOther, setCategoryOther] = useState("");
+
   if (!ready) return null;
 
   const onSelect = (categoryId: string) => {
     if (createDraft.isPending) return;
-    createDraft.mutate(categoryId, {
-      onSuccess: (result) => {
-        router.replace({ pathname: "/vendor-listings/[id]", params: { id: result.id } });
+    createDraft.mutate(
+      { categoryId },
+      {
+        onSuccess: (result) => {
+          router.replace({ pathname: "/vendor-listings/[id]", params: { id: result.id } });
+        },
       },
-    });
+    );
+  };
+
+  const onContinueWithOther = () => {
+    if (!categoryOther.trim() || createDraft.isPending) return;
+    createDraft.mutate(
+      { categoryOther: categoryOther.trim() },
+      {
+        onSuccess: (result) => {
+          router.replace({ pathname: "/vendor-listings/[id]", params: { id: result.id } });
+        },
+      },
+    );
   };
 
   return (
@@ -57,8 +79,27 @@ export default function NewVendorListingScreen() {
             {(categoriesQuery.data?.categories ?? []).map((category) => (
               <CategoryTile key={category.id} label={category.name} selected={false} onPress={() => onSelect(category.id)} />
             ))}
+            <CategoryTile label={OTHER_CATEGORY_LABEL} selected={showOtherInput} onPress={() => setShowOtherInput(true)} />
           </View>
         )}
+        {showOtherInput ? (
+          <View style={styles.otherSection}>
+            <TextField
+              label="What category is this?"
+              value={categoryOther}
+              onChangeText={setCategoryOther}
+              placeholder="e.g. Hair tools, Party supplies"
+              autoCapitalize="words"
+            />
+            <Button
+              label={createDraft.isPending ? "Starting…" : "Continue"}
+              onPress={onContinueWithOther}
+              disabled={!categoryOther.trim() || createDraft.isPending}
+              loading={createDraft.isPending}
+              fullWidth
+            />
+          </View>
+        ) : null}
         {createDraft.isError ? (
           <Text variant="small" tone="error">
             {friendlyErrorMessage(createDraft.error)}
@@ -74,4 +115,5 @@ const styles = StyleSheet.create({
   headerSpacer: { width: 24 },
   content: { padding: Spacing.md, gap: Spacing.md },
   categoryRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs },
+  otherSection: { gap: Spacing.sm },
 });

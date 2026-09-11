@@ -760,6 +760,8 @@ export type VendorListingFormValues = {
   title: string;
   description: string;
   categoryId: string;
+  /** M32.5 — free-text label when categoryId is the shared "Other / Not listed" placeholder Category. */
+  categoryOther?: string | null;
   basePrice: number;
   moq: number;
   maxOq: number | null;
@@ -789,6 +791,7 @@ export type VendorListingDetailDTO = {
   submittedAt: string | null;
   changesRequestedReason: string | null;
   categoryId: string;
+  categoryOther: string | null;
   bulkPriceTiers: VendorBulkTierDTO[];
   pendingChanges: { listing: VendorListingFormValues; bulkPriceTiers: { minQuantity: number; maxQuantity: number | null; unitPrice: number }[] } | null;
 };
@@ -924,6 +927,8 @@ export type VendorServiceDTO = {
   startingPrice: Money | null;
   active: boolean;
   category: ExploreCategoryDTO;
+  /** M32.5 — free-text label when `category.slug === OTHER_CATEGORY_SLUG` ("other"); null otherwise. */
+  categoryOther: string | null;
   createdAt: string;
   updatedAt: string;
 };

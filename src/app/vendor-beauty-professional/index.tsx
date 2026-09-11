@@ -55,7 +55,7 @@ export default function VendorBeautyProfessionalScreen() {
             <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </Pressable>
           <Text variant="sectionHeading" tone="primary">
-            Profile settings
+            {query.data ? "Profile settings" : "Create your beauty professional profile"}
           </Text>
         </View>
 

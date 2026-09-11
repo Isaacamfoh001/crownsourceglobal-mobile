@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
@@ -27,7 +27,21 @@ import {
   useSubmitApplication,
 } from "@/features/vendor/useVendorApplication";
 
-const SELLER_TYPES = [
+/**
+ * M32.6 — the one `VendorApplication` wizard (M27 §4/§5) now serves three
+ * distinct onboarding journeys (Seller / Factory-Manufacturer / Beauty
+ * prerequisite) off a single `?type=` param, per pathway-specific copy,
+ * fields and defaults below. Same backend draft, same status machine, same
+ * `sellerType` enum throughout — only the presentation and defaults differ
+ * per pathway, never the domain model.
+ */
+export type OnboardingType = "seller" | "manufacturer" | "beauty";
+
+function normalizeType(raw: string | undefined): OnboardingType {
+  return raw === "manufacturer" || raw === "beauty" ? raw : "seller";
+}
+
+const ALL_SELLER_TYPES = [
   { value: "INDIVIDUAL", label: "Individual / Independent Seller", description: "You sell on your own, without a registered business." },
   { value: "SOLE_TRADER", label: "Entrepreneur / Sole Trader", description: "You run a small operation, registered or not." },
   { value: "REGISTERED_BUSINESS", label: "Registered Business / Company", description: "An incorporated or formally registered company." },
@@ -37,30 +51,120 @@ const SELLER_TYPES = [
   { value: "OTHER", label: "Other", description: "None of the above quite fits." },
 ] as const;
 
+// Factory has its own pathway now, so it's pre-set there rather than picked
+// from the Seller list; Distributor/Wholesaler and Manufacturer don't apply
+// to an individual beauty professional.
+const SELLER_TYPE_OPTIONS: Record<OnboardingType, (typeof ALL_SELLER_TYPES)[number][]> = {
+  seller: ALL_SELLER_TYPES.filter((t) => t.value !== "MANUFACTURER"),
+  manufacturer: [],
+  beauty: ALL_SELLER_TYPES.filter((t) => t.value !== "DISTRIBUTOR_WHOLESALER" && t.value !== "MANUFACTURER"),
+};
+
 const REGISTRATION_RELEVANT: string[] = ["REGISTERED_BUSINESS", "DISTRIBUTOR_WHOLESALER", "MANUFACTURER", "ORGANIZATION"];
 
 const EDITABLE_STATUSES = new Set(["DRAFT", "CHANGES_REQUESTED", "REJECTED"]);
 
-const STEPS = ["Seller type", "Contact", "Business", "What you sell", "Review"];
+type PathwayConfig = {
+  wizardTitle: string;
+  steps: string[];
+  signedOutTitle: string;
+  signedOutMessage: string;
+  sellerTypeIntro: string;
+  businessNameLabel: string;
+  businessDescriptionLabel: string;
+  businessDescriptionPlaceholder: string;
+  categoryPrompt: string;
+  showSellingMode: boolean;
+  approvedTitle: string;
+  approvedMessage: string;
+};
 
-/**
- * Vendor onboarding (M27 §4/§5) — one mobile-appropriate multi-step screen
- * over the exact same persisted `VendorApplication` draft the web wizard
- * uses (`/api/v1/vendor-application*`), same fields, same server-side
- * validation, same status machine. Each "Continue" persists that step
- * immediately (matches the web per-step save-and-redirect behavior) so the
- * draft always reflects the furthest completed step even if the user
- * leaves mid-flow.
- */
+const PATHWAY: Record<OnboardingType, PathwayConfig> = {
+  seller: {
+    wizardTitle: "Seller application",
+    steps: ["Seller type", "Contact", "Your store", "Your products", "Review"],
+    signedOutTitle: "Start selling on CrownSource",
+    signedOutMessage: "Sign in or create an account to start your seller application.",
+    sellerTypeIntro: "What kind of seller are you?",
+    businessNameLabel: "Store / business name",
+    businessDescriptionLabel: "Tell customers about your store",
+    businessDescriptionPlaceholder: "What you sell and what makes your store worth buying from",
+    categoryPrompt: "What do you sell?",
+    showSellingMode: true,
+    approvedTitle: "You're approved!",
+    approvedMessage: "Your store is live. Open Vendor Mode from your Account tab to get started.",
+  },
+  manufacturer: {
+    wizardTitle: "Manufacturer application",
+    steps: ["Manufacturer", "Contact", "Your factory", "What you make", "Review"],
+    signedOutTitle: "Join CrownSource as a manufacturer",
+    signedOutMessage: "Sign in or create an account to start your manufacturer application.",
+    sellerTypeIntro: "You're applying as a Manufacturer / Factory.",
+    businessNameLabel: "Factory / company name",
+    businessDescriptionLabel: "Tell us about your factory",
+    businessDescriptionPlaceholder: "What you manufacture and your production capabilities",
+    categoryPrompt: "What do you manufacture?",
+    showSellingMode: true,
+    approvedTitle: "You're approved!",
+    approvedMessage: "Your factory account is live. Open Vendor Mode from your Account tab to see sourcing requests.",
+  },
+  beauty: {
+    wizardTitle: "Beauty professional application",
+    steps: ["About you", "Contact", "Your business", "Business category", "Review"],
+    signedOutTitle: "Offer your beauty services",
+    signedOutMessage: "Sign in or create an account to create your beauty professional profile.",
+    sellerTypeIntro: "How do you operate?",
+    businessNameLabel: "Professional / business name",
+    businessDescriptionLabel: "Tell clients about you",
+    businessDescriptionPlaceholder: "Your experience and the services you're known for",
+    categoryPrompt: "Business category",
+    showSellingMode: false,
+    approvedTitle: "You're approved!",
+    approvedMessage: "Now let's set up your beauty professional profile.",
+  },
+};
+
+function redirectTarget(type: OnboardingType): string {
+  return `/vendor-onboarding?type=${type}`;
+}
+
 export default function VendorOnboardingScreen() {
   const { colors } = useAppTheme();
   const { status: authStatus } = useAuth();
+  const params = useLocalSearchParams<{ type?: string }>();
+  const type = normalizeType(params.type);
+  const pathway = PATHWAY[type];
   const query = useVendorApplication(authStatus === "SIGNED_IN");
 
   if (authStatus !== "SIGNED_IN") {
     return (
-      <Screen>
-        <ErrorState title="Sign in required" message="Sign in to start your vendor application." onRetry={() => router.replace("/(auth)/sign-in")} />
+      <Screen edges={["top", "bottom"]}>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}>
+            <Ionicons name="close" size={24} color={colors.textPrimary} />
+          </Pressable>
+        </View>
+        <View style={styles.introContainer}>
+          <Text variant="screenTitle" tone="primary" style={styles.center}>
+            {pathway.signedOutTitle}
+          </Text>
+          <Text variant="body" tone="secondary" style={styles.center}>
+            {pathway.signedOutMessage}
+          </Text>
+          <View style={styles.introActions}>
+            <Button
+              label="Sign in to continue"
+              onPress={() => router.push({ pathname: "/(auth)/sign-in", params: { redirect: redirectTarget(type) } })}
+              fullWidth
+            />
+            <Button
+              label="Create an account to continue"
+              variant="outline"
+              onPress={() => router.push({ pathname: "/(auth)/sign-up", params: { redirect: redirectTarget(type) } })}
+              fullWidth
+            />
+          </View>
+        </View>
       </Screen>
     );
   }
@@ -85,6 +189,63 @@ export default function VendorOnboardingScreen() {
   }
 
   const application = query.data;
+  const beautyReadyToContinue = type === "beauty" && application.status === "APPROVED";
+
+  return (
+    <VendorOnboardingBody type={type} pathway={pathway} application={application} beautyReadyToContinue={beautyReadyToContinue} />
+  );
+}
+
+function VendorOnboardingBody({
+  type,
+  pathway,
+  application,
+  beautyReadyToContinue,
+}: {
+  type: OnboardingType;
+  pathway: PathwayConfig;
+  application: NonNullable<ReturnType<typeof useVendorApplication>["data"]>;
+  beautyReadyToContinue: boolean;
+}) {
+  const { colors } = useAppTheme();
+
+  // Beauty's prerequisite is simply an approved Vendor — once that's true,
+  // move straight into the real Beauty profile setup instead of a dead-end
+  // status card (M32.6 §5/§9). A navigation side effect belongs in an
+  // effect, not the render body, matching useVendorModeGuard's convention.
+  useEffect(() => {
+    if (beautyReadyToContinue) router.replace("/vendor-beauty-professional");
+  }, [beautyReadyToContinue]);
+
+  if (beautyReadyToContinue) return null;
+
+  // An already-approved Seller (or other non-manufacturer) has no upgrade
+  // path to Factory eligibility in the current backend — there is no
+  // endpoint to change an approved Vendor's sellerType, and VendorApplication
+  // is a single record per Vendor, not one per pathway (M32.6 §9/§I). Say so
+  // plainly rather than inventing an upgrade or silently reusing the Seller
+  // wizard.
+  if (type === "manufacturer" && application.status === "APPROVED" && application.sellerType !== "MANUFACTURER") {
+    return (
+      <Screen>
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}>
+            <Ionicons name="close" size={24} color={colors.textPrimary} />
+          </Pressable>
+        </View>
+        <View style={styles.statusContainer}>
+          <Text variant="screenTitle" tone="primary" style={styles.center}>
+            Manufacturer access isn&apos;t available yet
+          </Text>
+          <Text variant="body" tone="secondary" style={styles.center}>
+            Your seller account is already approved, but upgrading an existing seller account to a manufacturer account isn&apos;t
+            supported in the app yet. This needs a decision from the CrownSourceGlobal team before it can open up.
+          </Text>
+          <Button label="Done" onPress={() => router.back()} style={styles.doneButton} />
+        </View>
+      </Screen>
+    );
+  }
 
   if (!EDITABLE_STATUSES.has(application.status)) {
     const info = vendorStatus.application(application.status);
@@ -98,13 +259,13 @@ export default function VendorOnboardingScreen() {
         <View style={styles.statusContainer}>
           <StatusBadge label={info.label} tone={info.tone} />
           <Text variant="screenTitle" tone="primary" style={styles.center}>
-            {application.status === "APPROVED" ? "You're approved!" : "Application received"}
+            {application.status === "APPROVED" ? pathway.approvedTitle : "Application received"}
           </Text>
           <Text variant="body" tone="secondary" style={styles.center}>
             {application.status === "SUBMITTED" || application.status === "UNDER_REVIEW"
               ? "CrownSourceGlobal is reviewing your application. We'll notify you once there's a decision."
               : application.status === "APPROVED"
-                ? "Your store is live. Open Vendor Mode from your Account tab to get started."
+                ? pathway.approvedMessage
                 : "This application has been reviewed."}
           </Text>
           <Button label="Done" onPress={() => router.back()} style={styles.doneButton} />
@@ -113,16 +274,19 @@ export default function VendorOnboardingScreen() {
     );
   }
 
-  return <OnboardingWizard applicationId={application.id} />;
+  return <OnboardingWizard type={type} pathway={pathway} />;
 }
 
-function OnboardingWizard({ applicationId: _applicationId }: { applicationId: string }) {
+function OnboardingWizard({ type, pathway }: { type: OnboardingType; pathway: PathwayConfig }) {
   const { colors } = useAppTheme();
   const query = useVendorApplication(true);
   const app = query.data;
 
+  const sellerTypeOptions = SELLER_TYPE_OPTIONS[type];
+  const fixedSellerType = type === "manufacturer" ? "MANUFACTURER" : undefined;
+
   const [step, setStep] = useState(0);
-  const [sellerType, setSellerType] = useState<string | undefined>(app?.sellerType ?? undefined);
+  const [sellerType, setSellerType] = useState<string | undefined>(fixedSellerType ?? app?.sellerType ?? undefined);
   const [contactName, setContactName] = useState(app?.contactName ?? "");
   const [contactEmail, setContactEmail] = useState(app?.contactEmail ?? "");
   const [contactPhone, setContactPhone] = useState(app?.contactPhone ?? "");
@@ -137,8 +301,8 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
   const [categorySlugs, setCategorySlugs] = useState<string[]>(app?.categorySlugs ?? []);
   const [categoryOther, setCategoryOther] = useState(app?.categoryOther ?? "");
   const [otherSelected, setOtherSelected] = useState(Boolean(app?.categoryOther));
-  const [sellingMode, setSellingMode] = useState<string>(app?.sellingMode ?? "retail");
-  const [bulkCapable, setBulkCapable] = useState(app?.bulkCapable ?? false);
+  const [sellingMode, setSellingMode] = useState<string>(app?.sellingMode ?? (type === "manufacturer" ? "wholesale" : "retail"));
+  const [bulkCapable, setBulkCapable] = useState(app?.bulkCapable ?? type === "manufacturer");
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
   const categoriesQuery = useCategories();
@@ -153,7 +317,7 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
   const currentError =
     saveSellerType.error ?? saveContact.error ?? saveBusiness.error ?? saveOperations.error ?? submitApplication.error;
 
-  const goNext = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  const goNext = () => setStep((s) => Math.min(s + 1, pathway.steps.length - 1));
   const goBack = () => (step === 0 ? router.back() : setStep((s) => s - 1));
 
   const onContinue = () => {
@@ -189,7 +353,7 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
     } else {
       submitApplication.mutate(undefined, {
         onSuccess: () => {
-          router.replace("/vendor-onboarding");
+          router.replace({ pathname: "/vendor-onboarding", params: { type } });
         },
       });
     }
@@ -203,73 +367,90 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
             <Ionicons name={step === 0 ? "close" : "arrow-back"} size={24} color={colors.textPrimary} />
           </Pressable>
           <Text variant="sectionHeading" tone="primary">
-            Start selling
+            {pathway.wizardTitle}
           </Text>
           <View style={styles.headerSpacer} />
         </View>
 
         <View style={styles.stepRow}>
-          {STEPS.map((label, index) => (
+          {pathway.steps.map((label, index) => (
             <View key={label} style={[styles.stepDot, { backgroundColor: index <= step ? colors.pink : colors.border }]} />
           ))}
         </View>
         <Text variant="small" tone="muted" style={styles.stepLabel}>
-          Step {step + 1} of {STEPS.length} · {STEPS[step]}
+          Step {step + 1} of {pathway.steps.length} · {pathway.steps[step]}
         </Text>
 
         <View style={styles.content}>
           {step === 0 && (
             <View style={styles.fieldGroup}>
-              {SELLER_TYPES.map((option) => (
-                <Pressable
-                  key={option.value}
-                  onPress={() => setSellerType(option.value)}
-                  style={[
-                    styles.optionRow,
-                    { borderColor: sellerType === option.value ? colors.pink : colors.border, backgroundColor: colors.surface },
-                  ]}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: sellerType === option.value }}
-                >
+              <Text variant="body" tone="secondary">
+                {pathway.sellerTypeIntro}
+              </Text>
+              {fixedSellerType ? (
+                <View style={[styles.optionRow, { borderColor: colors.pink, backgroundColor: colors.surface }]}>
                   <View style={styles.flex}>
                     <Text variant="bodyMedium" tone="primary">
-                      {option.label}
+                      Manufacturer
                     </Text>
                     <Text variant="small" tone="secondary">
-                      {option.description}
+                      You produce the goods you supply.
                     </Text>
                   </View>
-                  <Ionicons
-                    name={sellerType === option.value ? "radio-button-on" : "radio-button-off"}
-                    size={20}
-                    color={sellerType === option.value ? colors.pink : colors.textMuted}
-                  />
-                </Pressable>
-              ))}
+                  <Ionicons name="checkmark-circle" size={20} color={colors.pink} />
+                </View>
+              ) : (
+                sellerTypeOptions.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setSellerType(option.value)}
+                    style={[
+                      styles.optionRow,
+                      { borderColor: sellerType === option.value ? colors.pink : colors.border, backgroundColor: colors.surface },
+                    ]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: sellerType === option.value }}
+                  >
+                    <View style={styles.flex}>
+                      <Text variant="bodyMedium" tone="primary">
+                        {option.label}
+                      </Text>
+                      <Text variant="small" tone="secondary">
+                        {option.description}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      name={sellerType === option.value ? "radio-button-on" : "radio-button-off"}
+                      size={20}
+                      color={sellerType === option.value ? colors.pink : colors.textMuted}
+                    />
+                  </Pressable>
+                ))
+              )}
             </View>
           )}
 
           {step === 1 && (
             <View style={styles.fieldGroup}>
               <TextField label="Your name" value={contactName} onChangeText={setContactName} autoCapitalize="words" />
-              <TextField label="Business email (optional)" value={contactEmail} onChangeText={setContactEmail} keyboardType="email-address" />
+              <TextField label="Contact email (optional)" value={contactEmail} onChangeText={setContactEmail} keyboardType="email-address" />
               <TextField label="Phone" value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" />
             </View>
           )}
 
           {step === 2 && (
             <View style={styles.fieldGroup}>
-              <TextField label="Store / business name" value={displayName} onChangeText={setDisplayName} autoCapitalize="words" />
+              <TextField label={pathway.businessNameLabel} value={displayName} onChangeText={setDisplayName} autoCapitalize="words" />
               <TextField label="Legal name (optional)" value={legalName} onChangeText={setLegalName} autoCapitalize="words" />
               <View style={styles.fieldWrap}>
                 <Text variant="smallMedium" tone="secondary">
-                  Tell customers about your store
+                  {pathway.businessDescriptionLabel}
                 </Text>
                 <TextInput
                   value={storeDescription}
                   onChangeText={setStoreDescription}
                   multiline
-                  placeholder="What you sell and what makes your store worth buying from"
+                  placeholder={pathway.businessDescriptionPlaceholder}
                   placeholderTextColor={colors.textMuted}
                   style={[styles.multiline, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.surface }]}
                 />
@@ -297,8 +478,13 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
           {step === 3 && (
             <View style={styles.fieldGroup}>
               <Text variant="smallMedium" tone="secondary">
-                What do you sell?
+                {pathway.categoryPrompt}
               </Text>
+              {type === "beauty" ? (
+                <Text variant="small" tone="muted">
+                  Helps us route your application — you&apos;ll choose your specific service specialties next, once you&apos;re approved.
+                </Text>
+              ) : null}
               {categoriesQuery.isPending ? (
                 <Text variant="small" tone="muted">
                   Loading categories…
@@ -322,35 +508,39 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
               )}
 
               {otherSelected ? (
-                <TextField label="What do you sell?" value={categoryOther} onChangeText={setCategoryOther} />
+                <TextField label={pathway.categoryPrompt} value={categoryOther} onChangeText={setCategoryOther} />
               ) : null}
 
-              <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
-                Selling mode
-              </Text>
-              <View style={styles.categoryRow}>
-                {(["retail", "wholesale", "both"] as const).map((mode) => (
-                  <CategoryTile key={mode} label={mode[0].toUpperCase() + mode.slice(1)} selected={sellingMode === mode} onPress={() => setSellingMode(mode)} />
-                ))}
-              </View>
+              {pathway.showSellingMode ? (
+                <>
+                  <Text variant="smallMedium" tone="secondary" style={styles.sectionLabel}>
+                    Selling mode
+                  </Text>
+                  <View style={styles.categoryRow}>
+                    {(["retail", "wholesale", "both"] as const).map((mode) => (
+                      <CategoryTile key={mode} label={mode[0].toUpperCase() + mode.slice(1)} selected={sellingMode === mode} onPress={() => setSellingMode(mode)} />
+                    ))}
+                  </View>
 
-              <Pressable onPress={() => setBulkCapable((v) => !v)} style={[styles.optionRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-                <Text variant="body" tone="primary" style={styles.flex}>
-                  I can fulfil bulk/wholesale orders
-                </Text>
-                <Ionicons name={bulkCapable ? "checkbox" : "square-outline"} size={20} color={bulkCapable ? colors.pink : colors.textMuted} />
-              </Pressable>
+                  <Pressable onPress={() => setBulkCapable((v) => !v)} style={[styles.optionRow, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                    <Text variant="body" tone="primary" style={styles.flex}>
+                      I can fulfil bulk/wholesale orders
+                    </Text>
+                    <Ionicons name={bulkCapable ? "checkbox" : "square-outline"} size={20} color={bulkCapable ? colors.pink : colors.textMuted} />
+                  </Pressable>
+                </>
+              ) : null}
             </View>
           )}
 
           {step === 4 && (
             <View style={styles.fieldGroup}>
-              <ReviewRow label="Seller type" value={SELLER_TYPES.find((t) => t.value === sellerType)?.label ?? ""} />
+              <ReviewRow label={type === "manufacturer" ? "Type" : "Seller type"} value={fixedSellerType ? "Manufacturer" : ALL_SELLER_TYPES.find((t) => t.value === sellerType)?.label ?? ""} />
               <ReviewRow label="Contact" value={[contactName, contactEmail, contactPhone].filter(Boolean).join(" · ")} />
-              <ReviewRow label="Store" value={displayName} />
+              <ReviewRow label={type === "seller" ? "Store" : type === "manufacturer" ? "Factory" : "Business"} value={displayName} />
               <ReviewRow label="Location" value={`${addressLine1}, ${city}, ${region}, ${country}`} />
               <ReviewRow label="Categories" value={[...categorySlugs, ...(categoryOther ? [categoryOther] : [])].join(", ")} />
-              <ReviewRow label="Selling mode" value={sellingMode} />
+              {pathway.showSellingMode ? <ReviewRow label="Selling mode" value={sellingMode} /> : null}
               <Text variant="small" tone="muted">
                 Submitting sends your application to CrownSourceGlobal for review. You&apos;ll be notified once there&apos;s a decision.
               </Text>
@@ -364,7 +554,7 @@ function OnboardingWizard({ applicationId: _applicationId }: { applicationId: st
           ) : null}
 
           <Button
-            label={step === STEPS.length - 1 ? (submitApplication.isPending ? "Submitting…" : "Submit application") : "Continue"}
+            label={step === pathway.steps.length - 1 ? (submitApplication.isPending ? "Submitting…" : "Submit application") : "Continue"}
             onPress={onContinue}
             loading={pending}
             disabled={pending}
@@ -419,6 +609,8 @@ const styles = StyleSheet.create({
   reviewRow: { gap: 2 },
   loading: { padding: Spacing.md, gap: Spacing.md },
   statusContainer: { alignItems: "center", padding: Spacing.xl, gap: Spacing.sm },
+  introContainer: { alignItems: "center", padding: Spacing.xl, gap: Spacing.sm },
+  introActions: { alignSelf: "stretch", gap: Spacing.sm, marginTop: Spacing.lg },
   center: { textAlign: "center" },
   doneButton: { marginTop: Spacing.lg, alignSelf: "stretch" },
 });
