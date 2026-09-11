@@ -42,10 +42,21 @@ export function VendorTabBar({ state, descriptors, navigation }: BottomTabBarPro
   const insets = useSafeAreaInsets();
   const { colors } = useAppTheme();
 
+  // `href: null` on a Tabs.Screen only hides its default tab-bar button
+  // (via `tabBarItemStyle: { display: 'none' }` — see expo-router's
+  // TabsClient) rather than removing the route from `state.routes`, so a
+  // custom `tabBar` must re-check that style itself or every registered
+  // screen renders regardless of the current Experience Mode (M32.4 §1/§2).
+  const visibleRoutes = state.routes.filter((route) => {
+    const style = descriptors[route.key].options.tabBarItemStyle as { display?: string } | undefined;
+    return style?.display !== "none";
+  });
+
   return (
     <View style={[styles.bar, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, Spacing.xs) }]}>
-      {state.routes.map((route, index) => {
+      {visibleRoutes.map((route) => {
         const { options } = descriptors[route.key];
+        const index = state.routes.indexOf(route);
         const focused = state.index === index;
         const icons = ICONS[route.name] ?? ICONS.index;
         const label = (options.title as string) ?? LABELS[route.name] ?? route.name;

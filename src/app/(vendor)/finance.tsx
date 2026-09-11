@@ -10,6 +10,7 @@ import { ErrorState, EmptyState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { VendorMoreButton } from "@/components/navigation/VendorMoreButton";
 import { useVendorFinanceOverview, useVendorEarnings, useVendorSettlements } from "@/features/vendor/useVendorFinance";
 import { vendorStatus } from "@/lib/vendorStatus";
 import { formatMoney, formatRelativeTime } from "@/lib/format";
@@ -47,9 +48,12 @@ export default function VendorFinanceScreen() {
         <Text variant="screenTitle" tone="primary">
           Earnings
         </Text>
-        <Pressable onPress={() => router.push("/vendor-finance/payout-destination")} accessibilityRole="button" accessibilityLabel="Payout destination">
-          <Ionicons name="card-outline" size={22} color={colors.textPrimary} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => router.push("/vendor-finance/payout-destination")} accessibilityRole="button" accessibilityLabel="Payout destination">
+            <Ionicons name="card-outline" size={22} color={colors.textPrimary} />
+          </Pressable>
+          <VendorMoreButton />
+        </View>
       </View>
 
       {overviewQuery.isPending ? (
@@ -157,6 +161,7 @@ export default function VendorFinanceScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: Spacing.md },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: Spacing.md },
   overviewLoading: { paddingHorizontal: Spacing.md },
   overviewGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs, paddingHorizontal: Spacing.md },
   tile: { width: "31%", borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.sm, gap: 4 },

@@ -11,6 +11,7 @@ import { ErrorState, EmptyState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { VendorMoreButton } from "@/components/navigation/VendorMoreButton";
 import { useVendorOrders } from "@/features/vendor/useVendorOrders";
 import { vendorStatus } from "@/lib/vendorStatus";
 import { friendlyErrorMessage } from "@/lib/api/errors";
@@ -61,9 +62,12 @@ export default function VendorOrdersScreen() {
 
   return (
     <Screen onRefresh={() => query.refetch()} refreshing={query.isRefetching}>
-      <Text variant="screenTitle" tone="primary" style={styles.title}>
-        Orders
-      </Text>
+      <View style={styles.header}>
+        <Text variant="screenTitle" tone="primary">
+          Orders
+        </Text>
+        <VendorMoreButton />
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
         {FILTERS.map((f) => (
@@ -105,7 +109,7 @@ export default function VendorOrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: Spacing.md, paddingTop: Spacing.md },
   filterRow: { gap: Spacing.xs, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   filterChip: { borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs },
   list: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xxl, gap: Spacing.sm },

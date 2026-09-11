@@ -9,6 +9,7 @@ import { ErrorState, EmptyState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { VendorMoreButton } from "@/components/navigation/VendorMoreButton";
 import { useVendorSourcingSolicitations } from "@/features/vendor/useVendorSourcing";
 import { vendorStatus } from "@/lib/vendorStatus";
 import { friendlyErrorMessage } from "@/lib/api/errors";
@@ -59,6 +60,7 @@ export default function VendorSourcingTab() {
         <Text variant="screenTitle" tone="primary">
           Sourcing requests
         </Text>
+        <VendorMoreButton />
       </View>
 
       <View style={styles.list}>
@@ -92,7 +94,7 @@ export default function VendorSourcingTab() {
 }
 
 const styles = StyleSheet.create({
-  header: { padding: Spacing.md },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: Spacing.md },
   list: { paddingHorizontal: Spacing.md, gap: Spacing.sm },
   loading: { gap: Spacing.sm },
   row: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, borderRadius: Radius.lg, borderWidth: 1, padding: Spacing.md },

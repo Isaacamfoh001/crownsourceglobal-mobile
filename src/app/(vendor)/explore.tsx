@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { VendorMoreButton } from "@/components/navigation/VendorMoreButton";
 import { useMyExplorePosts } from "@/features/explore/useMyExplorePosts";
 
 /**
@@ -30,7 +31,10 @@ export default function VendorExploreTab() {
         <Text variant="screenTitle" tone="primary">
           Explore
         </Text>
-        <Button label="New post" icon={<Ionicons name="add" size={16} color={colors.textOnAccent} />} onPress={() => router.push("/explore/create")} />
+        <View style={styles.headerActions}>
+          <Button label="New post" icon={<Ionicons name="add" size={16} color={colors.textOnAccent} />} onPress={() => router.push("/explore/create")} />
+          <VendorMoreButton />
+        </View>
       </View>
 
       {query.isPending ? (
@@ -56,6 +60,7 @@ export default function VendorExploreTab() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: Spacing.md },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   list: { paddingHorizontal: Spacing.md },
   summaryRow: { flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginHorizontal: Spacing.md, borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.md },
   flex: { flex: 1 },

@@ -11,6 +11,7 @@ import { ErrorState, EmptyState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
+import { VendorMoreButton } from "@/components/navigation/VendorMoreButton";
 import { useVendorListings } from "@/features/vendor/useVendorListings";
 import { vendorStatus, type ListingPresentationGroup } from "@/lib/vendorStatus";
 import { formatMoney } from "@/lib/format";
@@ -25,19 +26,18 @@ const FILTERS: { value: ListingPresentationGroup; label: string }[] = [
 ];
 
 /**
- * M32.3 §14 — a single plain-language status badge (via
- * `vendorStatus.listingGroup`) plus inline, contextual tags for things
- * that matter to a specific row but were never top-level filter concepts:
- * out of stock / low stock, and an in-review edit awaiting re-approval.
- * Never shows the raw `approvalStatus`/`listingStatus` enum pair directly.
+ * M32.4 §11/§14 — a single plain-language status badge (via
+ * `vendorStatus.listingGroup`) plus an in-review edit awaiting
+ * re-approval. Never shows the raw `approvalStatus`/`listingStatus` enum
+ * pair directly, and deliberately drops any stock-level badge — the
+ * vendor knows their own stock; inventory quantity/enforcement still
+ * lives server-side and at checkout, just not as seller-facing UI here.
  */
 function ListingRow({ listing }: { listing: VendorListingSummaryDTO }) {
   const { colors } = useAppTheme();
   const group = vendorStatus.listingGroup(listing.approvalStatus, listing.listingStatus);
   const info = vendorStatus.listingGroupInfo(group);
   const isHidden = group === "live" && listing.listingStatus === "INACTIVE";
-  const isLowStock = listing.availabilityStatus === "LOW_STOCK";
-  const isOutOfStock = listing.availabilityStatus === "OUT_OF_STOCK";
 
   return (
     <Pressable
@@ -55,7 +55,6 @@ function ListingRow({ listing }: { listing: VendorListingSummaryDTO }) {
           <StatusBadge label={info.label} tone={info.tone} />
           {isHidden ? <StatusBadge label="Hidden" tone="muted" /> : null}
           {listing.hasPendingChanges ? <StatusBadge label="Pending changes" tone="gold" /> : null}
-          {isOutOfStock ? <StatusBadge label="Out of stock" tone="error" /> : isLowStock ? <StatusBadge label="Low stock" tone="warning" /> : null}
         </View>
       </View>
       <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -78,7 +77,10 @@ export default function VendorListingsScreen() {
         <Text variant="screenTitle" tone="primary">
           Products
         </Text>
-        <Button label="New" icon={<Ionicons name="add" size={16} color={colors.textOnAccent} />} onPress={() => router.push("/vendor-listings/new")} />
+        <View style={styles.headerActions}>
+          <Button label="New" icon={<Ionicons name="add" size={16} color={colors.textOnAccent} />} onPress={() => router.push("/vendor-listings/new")} />
+          <VendorMoreButton />
+        </View>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
@@ -129,6 +131,7 @@ export default function VendorListingsScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: Spacing.md },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   filterRow: { paddingHorizontal: Spacing.md, gap: Spacing.xs, paddingBottom: Spacing.sm },
   chip: { borderWidth: 1, borderRadius: Radius.pill, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs },
   list: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xxl, gap: Spacing.sm },

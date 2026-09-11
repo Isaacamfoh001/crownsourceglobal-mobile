@@ -11,14 +11,18 @@ import { useExperience } from "@/hooks/useExperience";
 type MoreItem = { icon: keyof typeof Ionicons.glyphMap; label: string; description: string; onPress: () => void };
 
 /**
- * Vendor Mode's "More" hub (M27 §6, simplified M32.3 §6/§17) — restrained
- * by design, not every desktop admin surface. Beauty Professional and
- * Sourcing Requests are deliberately NOT here: they're each their own
- * primary tab in the experience that actually uses them (BEAUTY, FACTORY)
- * and reachable for everyone else via Account → Switch experience, never
- * shown to a plain Seller "merely because the user is a vendor" (M32.3
- * §6). "My Explore posts" is hidden in BEAUTY mode specifically because
- * that mode already has its own dedicated Explore tab.
+ * Vendor Mode's "More" hub (M27 §6, simplified M32.3 §6/§17, no longer a
+ * bottom tab itself as of M32.4 §2/§10 — reached via a header button
+ * instead). Restrained by design, not every desktop admin surface. Beauty
+ * Professional/Services/Requests and Sourcing Requests are deliberately
+ * NOT here: they're each their own primary tab in the experience that
+ * actually uses them (BEAUTY, FACTORY) and reachable for everyone else
+ * via Account → Switch experience, never shown to a plain Seller "merely
+ * because the user is a vendor" (M32.3 §6). "My Explore posts" only shows
+ * for FACTORY — BEAUTY already has its own dedicated Explore tab, and
+ * ordinary Seller mode drops Explore management entirely (M32.4 §9): a
+ * product seller markets through their Store/Products, not a second
+ * marketing channel.
  */
 export default function VendorMoreScreen() {
   const { colors } = useAppTheme();
@@ -27,9 +31,12 @@ export default function VendorMoreScreen() {
   const items: MoreItem[] = [
     {
       icon: "storefront-outline",
-      label: "Store settings",
-      description: "Store name, description, location, pickup details",
-      onPress: () => router.push("/vendor-store"),
+      label: experience === "BEAUTY" ? "Profile settings" : "Store settings",
+      description:
+        experience === "BEAUTY"
+          ? "Profile, specialties and where you work"
+          : "Store name, description, location, pickup details",
+      onPress: () => router.push(experience === "BEAUTY" ? "/vendor-beauty-professional" : "/vendor-store"),
     },
     // Factory's primary tabs prioritize Sourcing Requests (M32.3 §7) —
     // product-listing management stays available here rather than
@@ -45,18 +52,14 @@ export default function VendorMoreScreen() {
             description: "Any listings your factory also sells directly",
             onPress: () => router.push("/(vendor)/listings"),
           },
-        ]
-      : []),
-    ...(experience === "BEAUTY"
-      ? []
-      : [
           {
             icon: "images-outline" as const,
             label: "My Explore posts",
             description: "Your published and pending posts",
             onPress: () => router.push("/vendor-explore-posts"),
           },
-        ]),
+        ]
+      : []),
     {
       icon: "alert-circle-outline",
       label: "Resolutions",

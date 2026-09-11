@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -10,64 +11,9 @@ import { useAppTheme } from "@/hooks/useAppTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { useExperience } from "@/hooks/useExperience";
 import { useVendorDashboard } from "@/features/vendor/useVendorDashboard";
-import { useVendorBeautyProfile } from "@/features/vendor/useVendorBeautyProfessional";
-import { ProfileForm } from "@/features/vendor/beauty/BeautySections";
 import { formatMoney } from "@/lib/format";
 import { friendlyErrorMessage } from "@/lib/api/errors";
-
-/**
- * BEAUTY-mode Dashboard (M32.3 §8) — the generic Seller/Factory dashboard
- * below is entirely product/listing/order-centric (stock levels, new
- * orders, payout) and doesn't fit a Beauty Professional with no product
- * catalogue, so this mode gets its own: profile status + the same
- * `ProfileForm` `vendor-beauty-professional/index.tsx` uses, plus quick
- * links into the Services/Requests/Explore tabs.
- */
-function BeautyDashboard() {
-  const { colors } = useAppTheme();
-  const { status } = useAuth();
-  const query = useVendorBeautyProfile(status === "SIGNED_IN");
-
-  if (query.isPending) {
-    return (
-      <Screen>
-        <View style={styles.loading}>
-          <Skeleton height={160} radius={Radius.lg} />
-        </View>
-      </Screen>
-    );
-  }
-
-  if (query.isError) {
-    return (
-      <Screen>
-        <ErrorState title="Couldn't load your profile" message={friendlyErrorMessage(query.error)} onRetry={() => query.refetch()} />
-      </Screen>
-    );
-  }
-
-  return (
-    <Screen>
-      <ProfileForm profile={query.data} />
-      {query.data ? (
-        <View style={styles.quickLinkRow}>
-          <Pressable onPress={() => router.push("/(vendor)/requests")} style={[styles.quickLink, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Ionicons name="calendar-outline" size={18} color={colors.goldStrong} />
-            <Text variant="small" tone="primary">
-              Requests
-            </Text>
-          </Pressable>
-          <Pressable onPress={() => router.push("/(vendor)/explore")} style={[styles.quickLink, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Ionicons name="images-outline" size={18} color={colors.goldStrong} />
-            <Text variant="small" tone="primary">
-              Explore
-            </Text>
-          </Pressable>
-        </View>
-      ) : null}
-    </Screen>
-  );
-}
+import { VendorMoreButton } from "@/components/navigation/VendorMoreButton";
 
 function StatTile({ icon, label, value, warn }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: number; warn?: boolean }) {
   const { colors } = useAppTheme();
@@ -92,9 +38,15 @@ export default function VendorDashboardScreen() {
   const { experience } = useExperience();
   const query = useVendorDashboard(status === "SIGNED_IN" && experience !== "BEAUTY");
 
-  if (experience === "BEAUTY") {
-    return <BeautyDashboard />;
-  }
+  // Beauty Professionals have no Dashboard tab (M32.4 §3) — this route
+  // still exists (it's the group's default/initial route) but only a
+  // Seller or Factory vendor is ever meant to land here, so a Beauty
+  // vendor is bounced straight to their real first tab instead.
+  useEffect(() => {
+    if (experience === "BEAUTY") router.replace("/(vendor)/services");
+  }, [experience]);
+
+  if (experience === "BEAUTY") return null;
 
   if (query.isPending) {
     return (
@@ -121,6 +73,10 @@ export default function VendorDashboardScreen() {
   return (
     <Screen onRefresh={() => query.refetch()} refreshing={query.isRefetching}>
       <View style={styles.container}>
+        <View style={styles.topBar}>
+          <VendorMoreButton />
+        </View>
+
         <View style={[styles.welcomeBand, { backgroundColor: colors.goldSurface, borderColor: colors.gold }]}>
           <Text variant="caption" tone="gold" style={styles.uppercase}>
             {isLive ? "Store live" : "Store being set up"}
@@ -234,8 +190,6 @@ export default function VendorDashboardScreen() {
             <StatTile icon="checkmark-circle-outline" label="Active" value={data.stats.active} />
             <StatTile icon="time-outline" label="Pending review" value={data.stats.pendingReview} />
             <StatTile icon="document-outline" label="Drafts" value={data.stats.drafts} />
-            <StatTile icon="close-circle-outline" label="Out of stock" value={data.stats.outOfStock} warn />
-            <StatTile icon="alert-circle-outline" label="Low stock" value={data.stats.lowStock} warn />
           </View>
         </View>
 
@@ -276,8 +230,7 @@ export default function VendorDashboardScreen() {
 const styles = StyleSheet.create({
   container: { padding: Spacing.md, gap: Spacing.lg },
   loading: { padding: Spacing.md, gap: Spacing.md },
-  quickLinkRow: { flexDirection: "row", gap: Spacing.sm, paddingHorizontal: Spacing.md },
-  quickLink: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Spacing.xs, borderWidth: 1, borderRadius: Radius.lg, padding: Spacing.md },
+  topBar: { flexDirection: "row", justifyContent: "flex-end" },
   welcomeBand: { borderRadius: Radius.lg, borderWidth: 1, padding: Spacing.lg, gap: Spacing.xxs },
   uppercase: { letterSpacing: 0.5 },
   welcomeTitle: { marginTop: 2 },
