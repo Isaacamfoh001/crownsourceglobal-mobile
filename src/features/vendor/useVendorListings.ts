@@ -84,6 +84,54 @@ export function useSaveVendorListingContent() {
   });
 }
 
+export type SubmitNewListingInput = {
+  listingId: string;
+  title: string;
+  description: string;
+  categoryId?: string;
+  /** M32.5 — "Other / Not listed" free text; mutually exclusive with categoryId. */
+  categoryOther?: string;
+  basePrice: number;
+  existingImages: string[];
+  newImages: VendorListingImageInput[];
+  bulkTiers: { minQuantity: number; maxQuantity: number | null; unitPrice: number }[];
+};
+
+/**
+ * M32.10 — the single "Submit for review" action for brand-new listing
+ * creation: saves content (creating/uploading images against the DRAFT
+ * already created by useCreateVendorListingDraft) and immediately submits
+ * for moderation, as one composite mutation so the creation UI never shows
+ * a separate Save step. Deliberately omits moq/maxOq/leadTimeDays — the API
+ * defaults moq to 1 and leaves maxOq/leadTimeDays null when absent, which is
+ * exactly what a brand-new listing should start with (see modules/vendor-
+ * listings' PATCH route doc comment). Those remain editable later from
+ * Products → listing → Edit.
+ */
+export function useSubmitNewVendorListing() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: SubmitNewListingInput) => {
+      const form = new FormData();
+      form.append("title", input.title);
+      form.append("description", input.description);
+      if (input.categoryId) form.append("categoryId", input.categoryId);
+      if (input.categoryOther) form.append("categoryOther", input.categoryOther);
+      form.append("basePrice", String(input.basePrice));
+      form.append("bulkTiers", JSON.stringify(input.bulkTiers));
+      for (const key of input.existingImages) form.append("existingImages", key);
+      for (const image of input.newImages) form.append("images", new File(image.uri));
+      await apiClient.patch<null>(`/api/v1/vendor/listings/${input.listingId}`, { form });
+      await apiClient.post<null>(`/api/v1/vendor/listings/${input.listingId}/submit`);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["vendor-listing", variables.listingId] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-listings"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-dashboard"] });
+    },
+  });
+}
+
 export function useSubmitVendorListing() {
   const queryClient = useQueryClient();
   return useMutation({

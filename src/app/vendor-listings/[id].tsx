@@ -22,6 +22,7 @@ import { friendlyErrorMessage } from "@/lib/api/errors";
 import {
   useVendorListingDetail,
   useSaveVendorListingContent,
+  useSubmitNewVendorListing,
   useSubmitVendorListing,
   useUpdateVendorListingInventory,
   useToggleVendorListingActive,
@@ -61,6 +62,33 @@ export default function VendorListingDetailScreen() {
   }
 
   const listing = query.data;
+  // M32.10 — a listing that has never been submitted (still DRAFT, never
+  // had submittedAt set) is mid-creation: show the simplified one-action
+  // creation form instead of the full management experience (inventory,
+  // availability, MOQ/lead-time, staged-edit banners) — none of that is
+  // relevant before the listing exists as a real submission.
+  const isNewDraft = listing.listingStatus === "DRAFT" && listing.submittedAt === null;
+
+  if (isNewDraft) {
+    return (
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <Screen edges={["top"]}>
+          <View style={styles.header}>
+            <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Close" hitSlop={8}>
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
+            </Pressable>
+            <Text variant="sectionHeading" tone="primary">
+              Add product
+            </Text>
+            <View style={styles.headerSpacer} />
+          </View>
+          <NewListingForm listing={listing} />
+          <View style={styles.bottomSpacer} />
+        </Screen>
+      </KeyboardAvoidingView>
+    );
+  }
+
   const locked = listing.approvalStatus === "PENDING" && listing.submittedAt !== null;
   const approval = vendorStatus.listingApproval(listing.approvalStatus);
   const lifecycle = vendorStatus.listing(listing.listingStatus);
@@ -121,6 +149,177 @@ export default function VendorListingDetailScreen() {
   );
 }
 
+/**
+ * M32.10 — the entire brand-new listing creation journey: photos, product
+ * details, category, price. No MOQ, no inventory/availability, no lead
+ * time, no separate Save step. One button — "Submit for review" — validates,
+ * saves the content (creating/uploading images against the DRAFT already
+ * created by the category-picker screen), and submits for moderation in one
+ * tap. Bulk pricing tiers aren't editable on mobile yet (same as the
+ * existing management form) — a vendor who wants tiers sets them up later
+ * from the web portal.
+ */
+function NewListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVendorListingDetail>["data"]> }) {
+  const { colors } = useAppTheme();
+  const categoriesQuery = useCategories();
+  const submitNew = useSubmitNewVendorListing();
+
+  const [title, setTitle] = useState(listing.title === "Untitled listing" ? "" : listing.title);
+  const [description, setDescription] = useState(listing.description);
+  const [categoryId, setCategoryId] = useState<string | undefined>(listing.categoryOther ? undefined : listing.categoryId);
+  const [showOtherInput, setShowOtherInput] = useState(Boolean(listing.categoryOther));
+  const [categoryOther, setCategoryOther] = useState(listing.categoryOther ?? "");
+  const [basePrice, setBasePrice] = useState(Number(listing.price.amount) > 0 ? String(Number(listing.price.amount)) : "");
+  const [existingImages, setExistingImages] = useState<VendorListingImageDTO[]>(listing.images);
+  const [newImages, setNewImages] = useState<VendorListingImageInput[]>([]);
+
+  const totalImages = existingImages.length + newImages.length;
+
+  const pickImages = async () => {
+    const remaining = MAX_IMAGES - totalImages;
+    if (remaining <= 0) return;
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Photo access needed", "Allow photo library access in Settings to add images.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, selectionLimit: remaining, quality: 0.8 });
+    if (result.canceled) return;
+    const prepared = await Promise.all(result.assets.map((asset) => prepareImage(asset, "listing")));
+    setNewImages((current) => [...current, ...prepared].slice(0, remaining + current.length));
+  };
+
+  const removeExistingImage = (key: string) => setExistingImages((current) => current.filter((img) => img.key !== key));
+  const removeNewImage = (index: number) => setNewImages((current) => current.filter((_, i) => i !== index));
+
+  const trimmedTitle = title.trim();
+  const trimmedDescription = description.trim();
+  const priceValue = Number(basePrice);
+  const canSubmit =
+    trimmedTitle.length >= 3 &&
+    trimmedDescription.length >= 10 &&
+    (showOtherInput ? categoryOther.trim().length > 0 : Boolean(categoryId)) &&
+    priceValue > 0 &&
+    totalImages >= 1 &&
+    !submitNew.isPending;
+
+  const onSubmit = () => {
+    if (!canSubmit) return;
+    submitNew.mutate(
+      {
+        listingId: listing.id,
+        title: trimmedTitle,
+        description: trimmedDescription,
+        categoryId: showOtherInput ? undefined : categoryId,
+        categoryOther: showOtherInput ? categoryOther.trim() : undefined,
+        basePrice: priceValue,
+        existingImages: existingImages.map((img) => img.key),
+        newImages,
+        bulkTiers: [],
+      },
+      {
+        onSuccess: () => {
+          router.replace("/(vendor)/listings");
+        },
+      },
+    );
+  };
+
+  return (
+    <View style={styles.formSection}>
+      <Text variant="smallMedium" tone="secondary">
+        Photos
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
+        {existingImages.map((img) => (
+          <View key={img.key} style={styles.imageThumbWrap}>
+            <Image source={{ uri: img.url }} style={styles.imageThumb} contentFit="cover" />
+            <Pressable onPress={() => removeExistingImage(img.key)} accessibilityRole="button" accessibilityLabel="Remove photo" style={[styles.removeButton, { backgroundColor: colors.textPrimary }]}>
+              <Ionicons name="close" size={14} color={colors.bg} />
+            </Pressable>
+          </View>
+        ))}
+        {newImages.map((img, index) => (
+          <View key={img.uri} style={styles.imageThumbWrap}>
+            <Image source={{ uri: img.uri }} style={styles.imageThumb} contentFit="cover" />
+            <Pressable onPress={() => removeNewImage(index)} accessibilityRole="button" accessibilityLabel="Remove photo" style={[styles.removeButton, { backgroundColor: colors.textPrimary }]}>
+              <Ionicons name="close" size={14} color={colors.bg} />
+            </Pressable>
+          </View>
+        ))}
+        {totalImages < MAX_IMAGES ? (
+          <Pressable onPress={pickImages} accessibilityRole="button" accessibilityLabel="Add photos" style={[styles.addImageButton, { borderColor: colors.border, backgroundColor: colors.surfaceSubtle }]}>
+            <Ionicons name="add" size={26} color={colors.textSecondary} />
+          </Pressable>
+        ) : null}
+      </ScrollView>
+      <Text variant="small" tone="muted">
+        {totalImages}/{MAX_IMAGES} photos · at least 1 required · real photos only
+      </Text>
+
+      <TextField label="Product name" value={title} onChangeText={setTitle} />
+
+      <View style={styles.fieldWrap}>
+        <Text variant="smallMedium" tone="secondary">
+          Description
+        </Text>
+        <TextInput
+          value={description}
+          onChangeText={setDescription}
+          multiline
+          placeholder="Describe this product"
+          placeholderTextColor={colors.textMuted}
+          style={[styles.multiline, { borderColor: colors.border, color: colors.textPrimary, backgroundColor: colors.surface }]}
+        />
+      </View>
+
+      <Text variant="smallMedium" tone="secondary">
+        Category
+      </Text>
+      <View style={styles.categoryRow}>
+        {(categoriesQuery.data?.categories ?? []).map((category) => (
+          <CategoryTile
+            key={category.id}
+            label={category.name}
+            selected={!showOtherInput && categoryId === category.id}
+            onPress={() => {
+              setCategoryId(category.id);
+              setShowOtherInput(false);
+            }}
+          />
+        ))}
+        <CategoryTile
+          label={OTHER_CATEGORY_LABEL}
+          selected={showOtherInput}
+          onPress={() => {
+            setShowOtherInput(true);
+            setCategoryId(undefined);
+          }}
+        />
+      </View>
+      {showOtherInput ? (
+        <TextField label="What category is this?" value={categoryOther} onChangeText={setCategoryOther} placeholder="e.g. Hair tools, Party supplies" autoCapitalize="words" />
+      ) : null}
+
+      <TextField label="Price (GHS)" value={basePrice} onChangeText={setBasePrice} keyboardType="decimal-pad" />
+
+      {submitNew.isError ? (
+        <Text variant="small" tone="error">
+          {friendlyErrorMessage(submitNew.error)}
+        </Text>
+      ) : null}
+
+      <Button
+        label={submitNew.isPending ? "Submitting…" : "Submit for review"}
+        onPress={onSubmit}
+        disabled={!canSubmit}
+        loading={submitNew.isPending}
+        fullWidth
+      />
+    </View>
+  );
+}
+
 function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVendorListingDetail>["data"]> }) {
   const { colors } = useAppTheme();
   const categoriesQuery = useCategories();
@@ -133,7 +332,6 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
   const [showOtherInput, setShowOtherInput] = useState(Boolean(listing.categoryOther));
   const [categoryOther, setCategoryOther] = useState(listing.categoryOther ?? "");
   const [basePrice, setBasePrice] = useState(String(Number(listing.price.amount)));
-  const [moq, setMoq] = useState(String(listing.moq));
   const [maxOq, setMaxOq] = useState(listing.maxOq !== null ? String(listing.maxOq) : "");
   const [leadTimeDays, setLeadTimeDays] = useState(listing.leadTimeDays !== null ? String(listing.leadTimeDays) : "");
   const [existingImages, setExistingImages] = useState<VendorListingImageDTO[]>(listing.images);
@@ -170,7 +368,6 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
   const trimmedTitle = title.trim();
   const trimmedDescription = description.trim();
   const priceValue = Number(basePrice);
-  const moqValue = Number(moq) || 1;
   const canSave =
     trimmedTitle.length >= 3 &&
     trimmedDescription.length >= 10 &&
@@ -187,7 +384,8 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
       categoryId: showOtherInput ? undefined : categoryId,
       categoryOther: showOtherInput ? categoryOther.trim() : undefined,
       basePrice: priceValue,
-      moq: moqValue,
+      // M32.10 — MOQ is no longer vendor/customer-facing; always written as 1.
+      moq: 1,
       maxOq: maxOq ? Number(maxOq) : null,
       leadTimeDays: leadTimeDays ? Number(leadTimeDays) : null,
       specs: listing.specs,
@@ -285,17 +483,10 @@ function ListingForm({ listing }: { listing: NonNullable<ReturnType<typeof useVe
           <TextField label="Price (GHS)" value={basePrice} onChangeText={setBasePrice} keyboardType="decimal-pad" />
         </View>
         <View style={styles.flex}>
-          <TextField label="Min. order qty" value={moq} onChangeText={setMoq} keyboardType="number-pad" />
-        </View>
-      </View>
-      <View style={styles.row}>
-        <View style={styles.flex}>
           <TextField label="Max. order qty (optional)" value={maxOq} onChangeText={setMaxOq} keyboardType="number-pad" />
         </View>
-        <View style={styles.flex}>
-          <TextField label="Lead time (days, optional)" value={leadTimeDays} onChangeText={setLeadTimeDays} keyboardType="number-pad" />
-        </View>
       </View>
+      <TextField label="Lead time (days, optional)" value={leadTimeDays} onChangeText={setLeadTimeDays} keyboardType="number-pad" />
 
       {saveContent.isError ? (
         <Text variant="small" tone="error">
@@ -411,6 +602,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   loading: { padding: Spacing.md, gap: Spacing.md },
   header: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
+  headerSpacer: { width: 24 },
   badgeRow: { flexDirection: "row", gap: Spacing.xs, paddingHorizontal: Spacing.md },
   notice: { marginHorizontal: Spacing.md, marginTop: Spacing.sm, borderWidth: 1, borderRadius: Radius.md, padding: Spacing.sm },
   formSection: { padding: Spacing.md, gap: Spacing.sm },

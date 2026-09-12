@@ -80,11 +80,6 @@ export function ProductCard({ listing, onPress, width }: ProductCardProps) {
             </View>
           )}
         </View>
-        {listing.moq > 1 && (
-          <Text variant="small" tone="muted" numberOfLines={1} style={styles.moq}>
-            MOQ {listing.moq}
-          </Text>
-        )}
       </View>
     </Pressable>
   );
@@ -114,5 +109,4 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: "row", alignItems: "center", marginTop: 3, gap: Spacing.xxs },
   priceText: { flexShrink: 1 },
   bulkChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: Radius.sm },
-  moq: { marginTop: 1 },
 });

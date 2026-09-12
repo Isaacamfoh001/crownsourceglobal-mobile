@@ -121,7 +121,9 @@ function CartLineRow({ line }: { line: CartLineDTO }) {
   const updateQuantity = useUpdateCartItemQuantity();
   const removeItem = useRemoveCartItem();
   const isBusy = updateQuantity.isPending || removeItem.isPending;
-  const isUnavailable = line.availabilityStatus === "OUT_OF_STOCK" || line.availableQuantity < line.moq;
+  // M32.10 — MOQ is no longer a marketplace requirement; every listing has
+  // an effective minimum purchasable quantity of 1, regardless of stored `moq`.
+  const isUnavailable = line.availabilityStatus === "OUT_OF_STOCK" || line.availableQuantity < 1;
 
   const maxQuantity = Math.min(line.maxOq ?? line.availableQuantity, line.availableQuantity);
 
@@ -153,7 +155,7 @@ function CartLineRow({ line }: { line: CartLineDTO }) {
         <View style={styles.lineFooter}>
           <QuantityStepper
             quantity={line.quantity}
-            min={line.moq}
+            min={1}
             max={maxQuantity}
             compact
             onChange={(quantity) => updateQuantity.mutate({ cartItemId: line.id, quantity })}

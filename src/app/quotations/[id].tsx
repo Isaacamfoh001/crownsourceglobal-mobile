@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/Text";
 import { Button } from "@/components/ui/Button";
 import { QuotationStatusBadge } from "@/components/ui/QuotationStatusBadge";
+import { AttachmentImage } from "@/components/ui/AttachmentImage";
 import { PickerModal } from "@/components/ui/PickerModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
@@ -64,6 +65,24 @@ export default function QuotationDetailScreen() {
             Issued {formatDate(quotation.issuedAt)}
             {quotation.status === "ISSUED" ? ` · Valid until ${formatDate(quotation.expiresAt)}` : ""}
           </Text>
+
+          {quotation.sourcingRequestImages.length > 0 ? (
+            <View style={styles.gap}>
+              <Text variant="smallMedium" tone="secondary">
+                Your reference photos
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageGallery}>
+                {quotation.sourcingRequestImages.map((image) => (
+                  <AttachmentImage
+                    key={image.id}
+                    url={image.url}
+                    style={[styles.galleryImage, { backgroundColor: colors.surfaceSubtle }]}
+                    contentFit="cover"
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
 
           <View style={[styles.itemsCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             {quotation.items.map((item) => (
@@ -296,6 +315,8 @@ const styles = StyleSheet.create({
   gap: { marginTop: Spacing.sm },
   content: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xxl, gap: Spacing.xxs },
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  imageGallery: { gap: Spacing.xs, paddingTop: Spacing.xxs },
+  galleryImage: { width: 96, height: 96, borderRadius: Radius.md },
   itemsCard: { marginTop: Spacing.lg, borderRadius: Radius.lg, borderWidth: 1, padding: Spacing.sm, gap: Spacing.sm },
   itemRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: Spacing.sm },
   totalRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: StyleSheet.hairlineWidth, paddingTop: Spacing.sm, marginTop: Spacing.xxs },

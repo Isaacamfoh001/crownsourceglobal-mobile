@@ -82,15 +82,6 @@ export default function ExploreScreen() {
         </Text>
         <View style={styles.headerActions}>
           <Pressable
-            onPress={() => router.push("/(tabs)/source")}
-            accessibilityRole="button"
-            accessibilityLabel="Source a look from a photo"
-            hitSlop={6}
-            style={[styles.headerIconButton, { backgroundColor: colors.surfaceSubtle }]}
-          >
-            <Ionicons name="camera-outline" size={20} color={colors.textPrimary} />
-          </Pressable>
-          <Pressable
             onPress={() => {
               if (!isSignedIn) {
                 promptSignInRequired("view saved posts", "/(tabs)/explore");

@@ -408,6 +408,8 @@ export type QuotationDetailDTO = {
   total: number;
   items: QuotationLineItemDTO[];
   acceptedOrderId: string | null;
+  /** M32.10 — the originating custom sourcing request's own photos. Empty for an INSTANT quote. */
+  sourcingRequestImages: { id: string; url: string }[];
 };
 
 /**

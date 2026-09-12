@@ -37,18 +37,21 @@ export default function ListingDetailScreen() {
   const cartQuery = useCart(authStatus === "SIGNED_IN");
   const addToCart = useAddToCart();
 
-  const [quantity, setQuantity] = useState(1);
+  // M32.10 — MOQ is no longer a marketplace requirement; every listing has
+  // an effective minimum purchasable quantity of 1, regardless of stored `moq`.
+  const MIN_QUANTITY = 1;
+
+  const [quantity, setQuantity] = useState(MIN_QUANTITY);
   const [lastListingId, setLastListingId] = useState<string | undefined>(undefined);
   if (listing && listing.id !== lastListingId) {
     setLastListingId(listing.id);
-    setQuantity(listing.moq);
+    setQuantity(MIN_QUANTITY);
   }
 
   const [justAdded, setJustAdded] = useState(false);
 
   const metaLine = listing
     ? [
-        `MOQ ${listing.moq} unit${listing.moq === 1 ? "" : "s"}`,
         listing.maxOq ? `Max ${listing.maxOq}` : null,
         listing.leadTimeDays != null ? `${listing.leadTimeDays}d lead time` : null,
         `${listing.availableQuantity} available`,
@@ -58,7 +61,7 @@ export default function ListingDetailScreen() {
     : "";
 
   const maxQuantity = listing ? Math.min(listing.maxOq ?? listing.availableQuantity, listing.availableQuantity) : 0;
-  const isPurchasable = Boolean(listing) && listing!.availabilityStatus !== "OUT_OF_STOCK" && maxQuantity >= listing!.moq;
+  const isPurchasable = Boolean(listing) && listing!.availabilityStatus !== "OUT_OF_STOCK" && maxQuantity >= MIN_QUANTITY;
   const displayUnitPrice = listing ? resolveDisplayUnitPrice(listing.price, listing.bulkPriceTiers, quantity) : null;
 
   function handleAddToCart() {
@@ -151,13 +154,13 @@ export default function ListingDetailScreen() {
                       <Text variant="sectionHeading" tone="primary">
                         Quantity
                       </Text>
-                      {displayUnitPrice && quantity > listing.moq && (
+                      {displayUnitPrice && quantity > MIN_QUANTITY && (
                         <Text variant="small" tone="secondary" style={styles.quantityPriceHint}>
                           {formatMoney(displayUnitPrice)} / unit
                         </Text>
                       )}
                     </View>
-                    <QuantityStepper quantity={quantity} min={listing.moq} max={maxQuantity} onChange={setQuantity} />
+                    <QuantityStepper quantity={quantity} min={MIN_QUANTITY} max={maxQuantity} onChange={setQuantity} />
                   </View>
                   {addToCart.isError && (
                     <Text variant="small" tone="error" style={styles.quantityPriceHint}>
