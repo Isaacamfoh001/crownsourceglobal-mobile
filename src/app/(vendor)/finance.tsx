@@ -19,7 +19,7 @@ import { friendlyErrorMessage } from "@/lib/api/errors";
 function OverviewTile({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
   const { colors } = useAppTheme();
   return (
-    <View style={[styles.tile, { backgroundColor: emphasis ? colors.textPrimary : colors.surface, borderColor: colors.border }]}>
+    <View style={[styles.tile, { backgroundColor: emphasis ? colors.surfaceInverse : colors.surface, borderColor: colors.border }]}>
       <Text variant="caption" tone={emphasis ? "inverse" : "muted"}>
         {label}
       </Text>

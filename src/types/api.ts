@@ -410,14 +410,23 @@ export type QuotationDetailDTO = {
   acceptedOrderId: string | null;
 };
 
-/** `POST /api/v1/quotations/:id/accept` body — mirrors lib/delivery-schema.ts's deliverySchema exactly. `region` must be one of constants/ghanaRegions.ts's GHANA_REGIONS. */
+/**
+ * `POST /api/v1/quotations/:id/accept` body (also `/api/v1/checkout`) —
+ * mirrors lib/delivery-schema.ts's deliverySchema exactly. `region` must be
+ * one of constants/ghanaRegions.ts's GHANA_REGIONS — required only when
+ * `country` is "Ghana" (the backend default when `country` is omitted, so
+ * cart checkout's Ghana-only screen can keep omitting it). M32.9 — a
+ * non-Ghana `country` (currently only the sourcing quote-acceptance screen
+ * offers this) must omit `region` entirely, never send a stale one.
+ */
 export type DeliveryInfoInput = {
   recipientName: string;
   phone: string;
   addressLine1: string;
   addressLine2?: string;
   city: string;
-  region: string;
+  country?: string;
+  region?: string;
   notes?: string;
   saveAddress?: boolean;
 };

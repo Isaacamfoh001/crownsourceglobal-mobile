@@ -195,7 +195,7 @@ export default function VendorDashboardScreen() {
 
         <Pressable
           onPress={() => router.push("/(vendor)/finance")}
-          style={[styles.financeCard, { backgroundColor: colors.textPrimary }]}
+          style={[styles.financeCard, { backgroundColor: colors.surfaceInverse }]}
         >
           <View style={[styles.financeIcon, { backgroundColor: colors.goldSurface }]}>
             <Ionicons name="wallet-outline" size={20} color={colors.goldStrong} />

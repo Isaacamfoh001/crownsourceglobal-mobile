@@ -118,6 +118,15 @@ export type ThemeColors = {
   textPrimary: string;
   textSecondary: string;
   textMuted: string;
+  /**
+   * M32.9 — a fixed, always-dark "premium accent" fill for a high-emphasis
+   * tile/card (e.g. a finance/earnings summary), paired with `textInverse`.
+   * Deliberately NOT `textPrimary`: that token is a *text* color that flips
+   * value per theme (near-black in light mode, near-white in dark mode), so
+   * using it as a background made these tiles render near-white-on-white in
+   * dark mode. `surfaceInverse` never flips — it stays dark in both themes.
+   */
+  surfaceInverse: string;
   /** Text/icons that must stay light regardless of theme (over a scrim/photo). */
   textInverse: string;
   /** Text/icons placed on top of the `pink` fill — white in light mode, near-black in dark mode. See file header. */
@@ -147,6 +156,7 @@ const light: ThemeColors = {
   textPrimary: "#211A1D",
   textSecondary: "#6E6167",
   textMuted: "#7A6B70",
+  surfaceInverse: "#211A1D",
   textInverse: "#FFFFFF",
   textOnAccent: "#FFFFFF",
   pink: "#C13A65",
@@ -174,6 +184,7 @@ const dark: ThemeColors = {
   textPrimary: "#F7F1ED",
   textSecondary: "#BEB2B5",
   textMuted: "#8B7F82",
+  surfaceInverse: "#0C0909",
   textInverse: "#FFFFFF",
   textOnAccent: "#171214",
   pink: "#E15A84",

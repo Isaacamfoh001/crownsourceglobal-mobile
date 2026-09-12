@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/StateViews";
 import { Radius, Spacing } from "@/constants/theme";
 import { GHANA_REGIONS } from "@/constants/ghanaRegions";
+import { COUNTRIES } from "@/constants/countries";
 import { useAppTheme } from "@/hooks/useAppTheme";
 import { useQuotationDetail } from "@/features/quotations/useQuotations";
 import { useAcceptQuotation } from "@/features/quotations/useAcceptQuotation";
@@ -151,10 +152,13 @@ function AcceptQuotationForm({ quotationId, onCancel }: { quotationId: string; o
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
+  const [country, setCountry] = useState("Ghana");
   const [region, setRegion] = useState("");
   const [notes, setNotes] = useState("");
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [regionPickerOpen, setRegionPickerOpen] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const isGhana = country === "Ghana";
 
   function applyAddress(address: AddressDTO) {
     setSelectedAddressId(address.id);
@@ -163,7 +167,15 @@ function AcceptQuotationForm({ quotationId, onCancel }: { quotationId: string; o
     setAddressLine1(address.addressLine1);
     setAddressLine2(address.addressLine2 ?? "");
     setCity(address.city);
+    // Saved addresses are always Ghana — CustomerAddress has no country column yet.
+    setCountry("Ghana");
     setRegion(address.region);
+  }
+
+  function selectCountry(next: string) {
+    setCountry(next);
+    // Never carry a stale Ghana region into (or out of) a non-Ghana address.
+    setRegion("");
   }
 
   const canSubmit =
@@ -171,7 +183,8 @@ function AcceptQuotationForm({ quotationId, onCancel }: { quotationId: string; o
     phone.trim().length >= 9 &&
     addressLine1.trim().length >= 3 &&
     city.trim().length >= 2 &&
-    region.trim().length > 0 &&
+    country.trim().length > 0 &&
+    (!isGhana || region.trim().length > 0) &&
     !acceptMutation.isPending;
 
   function onSubmit() {
@@ -183,7 +196,8 @@ function AcceptQuotationForm({ quotationId, onCancel }: { quotationId: string; o
         addressLine1: addressLine1.trim(),
         addressLine2: addressLine2.trim() || undefined,
         city: city.trim(),
-        region,
+        country,
+        region: isGhana ? region : undefined,
         notes: notes.trim() || undefined,
       },
       {
@@ -233,14 +247,23 @@ function AcceptQuotationForm({ quotationId, onCancel }: { quotationId: string; o
           placeholderTextColor={colors.textMuted}
           style={[styles.input, { borderColor: colors.border, color: colors.textPrimary }]}
         />
-        <View style={styles.rowInputs}>
-          <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.textMuted} style={[styles.input, styles.rowInput, { borderColor: colors.border, color: colors.textPrimary }]} />
-          <Pressable onPress={() => setRegionPickerOpen(true)} style={[styles.input, styles.rowInput, styles.selectInput, { borderColor: colors.border }]} accessibilityRole="button">
-            <Text variant="body" tone={region ? "primary" : "muted"}>
-              {region || "Region"}
-            </Text>
-          </Pressable>
-        </View>
+        <Pressable onPress={() => setCountryPickerOpen(true)} style={[styles.input, styles.selectInput, { borderColor: colors.border }]} accessibilityRole="button">
+          <Text variant="body" tone={country ? "primary" : "muted"}>
+            {country || "Country"}
+          </Text>
+        </Pressable>
+        {isGhana ? (
+          <View style={styles.rowInputs}>
+            <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.textMuted} style={[styles.input, styles.rowInput, { borderColor: colors.border, color: colors.textPrimary }]} />
+            <Pressable onPress={() => setRegionPickerOpen(true)} style={[styles.input, styles.rowInput, styles.selectInput, { borderColor: colors.border }]} accessibilityRole="button">
+              <Text variant="body" tone={region ? "primary" : "muted"}>
+                {region || "Region"}
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <TextInput value={city} onChangeText={setCity} placeholder="City" placeholderTextColor={colors.textMuted} style={[styles.input, { borderColor: colors.border, color: colors.textPrimary }]} />
+        )}
         <TextInput
           value={notes}
           onChangeText={setNotes}
@@ -259,6 +282,7 @@ function AcceptQuotationForm({ quotationId, onCancel }: { quotationId: string; o
         <Button label={acceptMutation.isPending ? "Placing order…" : "Confirm & accept"} onPress={onSubmit} disabled={!canSubmit} loading={acceptMutation.isPending} fullWidth style={styles.submitButton} />
       </View>
 
+      <PickerModal visible={countryPickerOpen} title="Country" options={COUNTRIES} selected={country} onSelect={selectCountry} onClose={() => setCountryPickerOpen(false)} />
       <PickerModal visible={regionPickerOpen} title="Region" options={GHANA_REGIONS} selected={region} onSelect={setRegion} onClose={() => setRegionPickerOpen(false)} searchable={false} />
     </KeyboardAvoidingView>
   );
